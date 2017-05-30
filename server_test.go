@@ -10,9 +10,9 @@ func TestServeHTTP(t *testing.T) {
 
 	handler := new(MyOauth2Handler)
 	server := httptest.NewServer(handler)
-	defer server.Close()
+	defer server.Close() //close when test is ended...
 
-	resp,err := http.Get("http://localhost:8000/health_check")
+	resp,err := http.Get(server.URL+"/health_check")
 
 	if err != nil {
 		t.Fatal(err)
