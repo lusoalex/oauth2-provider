@@ -1,4 +1,57 @@
-package main
+package oauth2Provider
+
+import (
+	"errors"
+	"fmt"
+	"net/http"
+	"regexp"
+)
+
+type MyOauth2Handler struct{}
+
+var validPath = regexp.MustCompile("^/([a-zA-Z0-9_]+)?.*")
+
+func (h *MyOauth2Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+	uri := r.URL.Path
+	fmt.Println(uri)
+
+	m := validPath.FindStringSubmatch(uri)
+	if m == nil {
+		fmt.Println("aie aie aie aie")
+		return
+	}
+
+	fmt.Println(m[1])
+
+	switch m[1] {
+	case "health_check":
+		handleHealthCheck(w, r)
+	case "authorize":
+		handleAuthorizationRequest(w, r)
+	//case "token" : handleTokenRequest(w,r)
+	default:
+		handleError(w, errors.New("No matching resource found"), http.StatusNotFound)
+	}
+
+	fmt.Printf("%v",w)
+
+	return
+}
+
+func LaunchServer() {
+	handler := new(MyOauth2Handler)
+	http.ListenAndServe(":8000", handler)
+}
+
+/*
+func (h *MyHandlerType) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	uri := r.URL.Path
+	// ...use uri...
+}
+*/
+
+/*
 
 import (
 	"html/template"
@@ -73,10 +126,4 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.Handl
 	}
 }
 
-func main() {
-	http.HandleFunc("/view/", makeHandler(viewHandler))
-	http.HandleFunc("/edit/", makeHandler(editHandler))
-	http.HandleFunc("/save/", makeHandler(saveHandler))
-
-	http.ListenAndServe(":8000", nil)
-}
+*/
