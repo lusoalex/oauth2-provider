@@ -12,12 +12,13 @@ const (
 	INVALID_CLIENT_ID = "Unknown or invalid client_id"
 )
 
-//Should be rewritter later...
+//Should be implemented later...
 func findAndLoadClientSettings(clientId string) (*ClientId, error) {
 
-	if clientId == "" || clientId != "toto" {
-		return nil, errors.New(INVALID_CLIENT_ID)
-	} else {
+	//to implement later
+	if clientId == "toto" {
 		return &ClientId{ClientId: clientId, AllowedRedirectUri: []string{"http://callback"}}, nil
+	} else {
+		return nil, errors.New(INVALID_CLIENT_ID)
 	}
 }

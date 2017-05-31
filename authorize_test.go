@@ -1,9 +1,9 @@
 package oauth2Provider
 
 import (
-	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -42,7 +42,7 @@ func TestHandleAuthorizationRequest(t *testing.T) {
 		{"missing redirect_uri", buildTestCaseUrl(MissingRedirectUriTestCase), http.StatusBadRequest, "Missing parameter redirect_uri"},
 		{"invalid response_type", buildTestCaseUrl(InvalidResponseTypeTestCase), http.StatusBadRequest, INVALID_RESPONSE_TYPE},
 		{"invalid client_id", buildTestCaseUrl(InvalidClientIdTestCase), http.StatusBadRequest, INVALID_CLIENT_ID},
-		{"invalid redirect_uri", buildTestCaseUrl(InvalidRedirectUriTestCase), http.StatusBadRequest, INVALID_REDIREC_URI},
+		{"invalid redirect_uri", buildTestCaseUrl(InvalidRedirectUriTestCase), http.StatusBadRequest, INVALID_REDIRECT_URI},
 	}
 
 	//And we set it the handler we aim to test
@@ -80,28 +80,13 @@ func TestHandleAuthorizationRequest(t *testing.T) {
 
 /* SOME utils function to build test case values*/
 func buildTestCaseUrl(testCase *TestCase) string {
-	var buffer bytes.Buffer
-	buffer.WriteString(testCase.Path)
 
-	hasQueryParameter := appendTestCaseUrl(&buffer, false, PARAM_CLIENT_ID, testCase.ClientId)
-	hasQueryParameter = appendTestCaseUrl(&buffer, hasQueryParameter, PARAM_RESPONSE_TYPE, testCase.ResponseType)
-	hasQueryParameter = appendTestCaseUrl(&buffer, hasQueryParameter, PARAM_REDIRECT_URI, testCase.RedirectUri)
+	uri, _ := url.Parse(testCase.Path)
+	query := uri.Query()
+	query.Add(PARAM_CLIENT_ID, testCase.ClientId)
+	query.Add(PARAM_RESPONSE_TYPE, testCase.ResponseType)
+	query.Add(PARAM_REDIRECT_URI, testCase.RedirectUri)
 
-	return buffer.String()
-}
-
-func appendTestCaseUrl(buffer *bytes.Buffer, hasQueryParameter bool, key, value string) bool {
-	if value != "" {
-		if hasQueryParameter {
-			buffer.WriteString("&")
-		} else {
-			buffer.WriteString("?")
-		}
-		buffer.WriteString(key)
-		buffer.WriteString("=")
-		buffer.WriteString(value)
-		return true
-	}
-
-	return hasQueryParameter
+	uri.RawQuery = query.Encode()
+	return uri.String()
 }
