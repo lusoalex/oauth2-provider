@@ -1,9 +1,10 @@
 package oauth2Provider
 
 import (
-	"testing"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"testing"
 )
 
 func TestServeHTTP(t *testing.T) {
@@ -12,7 +13,9 @@ func TestServeHTTP(t *testing.T) {
 	server := httptest.NewServer(handler)
 	defer server.Close() //close when test is ended...
 
-	resp,err := http.Get(server.URL+"/health_check")
+	resp, err := http.Get(server.URL + "/health_check")
+
+	fmt.Println("server url is ", server.URL)
 
 	if err != nil {
 		t.Fatal(err)
@@ -22,7 +25,7 @@ func TestServeHTTP(t *testing.T) {
 		t.Fatalf("Received non-200 response: %d\n", resp.StatusCode)
 	}
 
-	if contentType := resp.Header.Get("Content-Type"); contentType != "application/json" {
-		t.Fatalf("Expecting Content-Type value : application/json, but was : %v",contentType)
+	if contentType := resp.Header.Get(CONTENT_TYPE); contentType != CONTENT_TYPE_JSON {
+		t.Fatalf("Expecting Content-Type value : %v, but was : %v", CONTENT_TYPE_JSON, contentType)
 	}
 }

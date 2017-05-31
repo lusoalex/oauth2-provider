@@ -1,13 +1,13 @@
 package oauth2Provider
 
 import (
-	"net/http"
 	"io"
+	"net/http"
 )
 
 func handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	// A very simple health check.
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(CONTENT_TYPE, CONTENT_TYPE_JSON)
 	w.WriteHeader(http.StatusOK)
 	// In the future we could report back on the status of our DB, or our cache
 	// (e.g. Redis) by performing a simple PING, and include them in the response.

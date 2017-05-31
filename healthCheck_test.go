@@ -1,9 +1,9 @@
 package oauth2Provider
 
 import (
-	"testing"
 	"net/http"
 	"net/http/httptest"
+	"testing"
 )
 
 func TestHandleHealthCheck(t *testing.T) {
@@ -27,6 +27,10 @@ func TestHandleHealthCheck(t *testing.T) {
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v",
 			status, http.StatusOK)
+	}
+
+	if contentType := rr.Header().Get(CONTENT_TYPE); contentType != CONTENT_TYPE_JSON {
+		t.Fatalf("Expecting Content-Type value : %v, but was : %v", CONTENT_TYPE_JSON, contentType)
 	}
 
 	// Check the response body is what we expect.
