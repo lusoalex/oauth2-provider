@@ -2,9 +2,8 @@ package oauth2Provider
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
-	"strings"
+	"regexp"
 )
 
 type Oauth2Flow string
@@ -19,32 +18,33 @@ type AuthorizationRequest struct {
 }
 
 const (
+	//Request query parameters as specified here : https://tools.ietf.org/html/rfc6749#section-4.1.1
 	PARAM_CLIENT_ID     = "client_id"
 	PARAM_RESPONSE_TYPE = "response_type"
 	PARAM_REDIRECT_URI  = "redirect_uri"
 	PARAM_SCOPE         = "scope"
 	PARAM_STATE         = "state"
+	//Additional query parameter as specified here : https://tools.ietf.org/html/rfc7636#section-6.1
+	PARAM_CODE_VERIFIER         = "code_verifier"
+	PARAM_CODE_CHALLENGE        = "code_challenge"
+	PARAM_CODE_CHALLENGE_METHOD = "code_challenge_method"
 
-	CODE  ResponseType = "code"
-	TOKEN ResponseType = "token"
+	RESPONSE_TYPE_CODE  ResponseType = "code"
+	RESPONSE_TYPE_TOKEN ResponseType = "token"
 
-	INVALID_RESPONSE_TYPE = "Unsupported response_type"
-	INVALID_REDIRECT_URI  = "Unknown or invalid redirect_uri"
+	CODE_CHALLENGE_METHOD_PLAIN = "plain"
+	CODE_CHALLENGE_METHOD_S256  = "S256"
 )
+
+var validCodeVerifier = regexp.MustCompile("^[a-zA-Z0-9_\\-~\\.]{43,128}$")
 
 func handleAuthorizationRequest(w http.ResponseWriter, r *http.Request) {
 
 	var authorizationRequest AuthorizationRequest
 
-	//Check all required parameters are well informed.
-	if err := checkRequiredParameters(r); err != nil {
-		handleError(w, err, http.StatusBadRequest)
-		return
-	}
-
-	//Initialize response_type
+	//Initialize response_type (see https://tools.ietf.org/html/rfc6749#section-4.1.2.1 or https://tools.ietf.org/html/rfc6749#section-4.2.2.1)
 	if responseType, err := initResponseType(r); err != nil {
-		handleError(w, err, http.StatusBadRequest)
+		handleOauth2Error(w, err)
 		return
 	} else {
 		authorizationRequest.ResponseType = responseType
@@ -52,22 +52,30 @@ func handleAuthorizationRequest(w http.ResponseWriter, r *http.Request) {
 
 	//initialize client_id
 	if clientId, err := findAndLoadClientSettings(r.URL.Query().Get(PARAM_CLIENT_ID)); err != nil {
-		handleError(w, err, http.StatusBadRequest)
+		handleOauth2Error(w, err)
 		return
 	} else {
 		authorizationRequest.ClientId = *clientId
 	}
 
-	//Initialize redirect_uri
-	if redirectUri, err := initRedirectUri(r, authorizationRequest.ClientId.AllowedRedirectUri); err != nil {
-		handleError(w, err, http.StatusBadRequest)
-		return
-	} else {
-		authorizationRequest.RedirectUri = redirectUri
-	}
-
 	authorizationRequest.Scope = r.URL.Query().Get(PARAM_SCOPE)
 	authorizationRequest.State = r.URL.Query().Get(PARAM_STATE)
+
+	//Handle authorization code flow request
+	switch authorizationRequest.ResponseType {
+	case RESPONSE_TYPE_CODE:
+		if err := handleAuthorizationCodeFlowRequest(w, r, &authorizationRequest); err != nil {
+			handleOauth2Error(w, err)
+			return
+		}
+	case RESPONSE_TYPE_TOKEN:
+		if err := handleImplicitFlowRequest(w, r, &authorizationRequest); err != nil {
+			handleOauth2Error(w, err)
+			return
+		}
+	default:
+		return
+	}
 
 	//Reply with the token
 	w.Header().Set(CONTENT_TYPE, CONTENT_TYPE_JSON)
@@ -77,46 +85,94 @@ func handleAuthorizationRequest(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func checkRequiredParameters(r *http.Request) error {
-	var REQUIRED_PARAMETERS = [3]string{PARAM_CLIENT_ID, PARAM_RESPONSE_TYPE, PARAM_REDIRECT_URI}
-	var missingParameter []string
-
-	for _, requiredParameter := range REQUIRED_PARAMETERS {
-		if r.URL.Query().Get(requiredParameter) == "" {
-			missingParameter = append(missingParameter, requiredParameter)
-		}
-	}
-
-	if len(missingParameter) > 0 {
-		return errors.New("Missing parameter " + strings.Join(missingParameter, ", "))
-	}
-	return nil
-}
-
-func initResponseType(r *http.Request) (ResponseType, error) {
+func initResponseType(r *http.Request) (ResponseType, *Oauth2Error) {
 
 	responseType := ResponseType(r.URL.Query().Get(PARAM_RESPONSE_TYPE))
 
-	if CODE != responseType && TOKEN != responseType {
-		return "", errors.New(INVALID_RESPONSE_TYPE)
+	if RESPONSE_TYPE_CODE != responseType && RESPONSE_TYPE_TOKEN != responseType {
+		return "", NewResponseTypeError()
 	}
 	return responseType, nil
 }
 
-func initRedirectUri(r *http.Request, allowedRedirectUris []string) (string, error) {
+/*
+ *  On the authorization code flow, the redirect_uri is required : https://tools.ietf.org/html/rfc6749#section-4.1.1
+ *  But on implicit flow, it is not mandatory as specified here : https://tools.ietf.org/html/rfc6749#section-4.2.1
+ *  In such case we must ensure that the request come's from an allowed client uri https://tools.ietf.org/html/rfc6749#section-3.1.2
+ */
+func initRedirectUri(r *http.Request, allowedRedirectUris []string, isImplicit bool) (string, *Oauth2Error) {
 
-	redirectUri := r.URL.Query().Get(PARAM_REDIRECT_URI)
-	isRedirectUriValid := false
-
-	for _, allowedRedirectUri := range allowedRedirectUris {
-		if redirectUri == allowedRedirectUri {
-			isRedirectUriValid = true
+	//If redirect_uri is not informed and current request is oauth2 implicit flow, then we get it from the settings.
+	if redirectUri := r.URL.Query().Get(PARAM_REDIRECT_URI); redirectUri == "" && isImplicit && len(allowedRedirectUris) == 1 {
+		return allowedRedirectUris[0], nil
+	} else {
+		//check that the provided redirect_uri is well informed into the client settings.
+		for _, allowedRedirectUri := range allowedRedirectUris {
+			if redirectUri == allowedRedirectUri {
+				return redirectUri, nil
+			}
 		}
 	}
+	//No matching redirect_uri found, return an error.
+	return "", NewRedirectUriError(isImplicit)
+}
 
-	if isRedirectUriValid {
-		return redirectUri, nil
+/**
+ * Even if PKCE (https://tools.ietf.org/html/rfc7636) is not forced, if code_challenge is informed, we will apply it.
+ */
+func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *AuthorizationRequest) *Oauth2Error {
+
+	//Initialize redirect_uri (required query parameter)
+	if redirectUri, err := initRedirectUri(r, authRequest.ClientId.AllowedRedirectUri, false); err != nil {
+		return err
 	} else {
-		return "", errors.New(INVALID_REDIRECT_URI)
+		authRequest.RedirectUri = redirectUri
 	}
+
+	//Get code_challenge, and if client_id settings require use of PKCE, return an error if not respected.
+	codeChallenge := r.URL.Query().Get(PARAM_CODE_CHALLENGE)
+	if codeChallenge == "" && authRequest.ClientId.ForceUseOfPKCE {
+		return NewCodeChallengeError()
+	}
+
+	codeChallengeMethod := r.URL.Query().Get(PARAM_CODE_CHALLENGE_METHOD)
+
+	//If code_challenge_method is specified, then the value must be plain or S256
+	if codeChallengeMethod != "" && codeChallengeMethod != CODE_CHALLENGE_METHOD_PLAIN && codeChallengeMethod != CODE_CHALLENGE_METHOD_S256 {
+		return NewCodeChallengeMethodError()
+	}
+
+	//If the code_challenge_method is not specified, but there's a code_challenge informed, so we use plain as default
+	//For more details, see : https://tools.ietf.org/html/rfc7636#section-4.3
+	if codeChallenge != "" && codeChallengeMethod == "" {
+		codeChallengeMethod = CODE_CHALLENGE_METHOD_PLAIN
+	}
+
+	return nil
+}
+
+func handleImplicitFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *AuthorizationRequest) *Oauth2Error {
+
+	//Initialize redirect_uri (optional query parameter)
+	if redirectUri, err := initRedirectUri(r, authRequest.ClientId.AllowedRedirectUri, true); err != nil {
+		return err
+	} else {
+		authRequest.RedirectUri = redirectUri
+	}
+
+	return nil
+}
+
+/*
+ * As specified in specs https://tools.ietf.org/html/rfc7636#section-4.1
+ * code_verifier = high-entropy cryptographic random STRING using the
+ * unreserved characters [A-Z] / [a-z] / [0-9] / "-" / "." / "_" / "~"
+ * length must be between 43 to 128 characters
+ */
+func valideCodeVerifier(codeVerifier string) *Oauth2Error {
+	m := validCodeVerifier.FindStringSubmatch(codeVerifier)
+	if m == nil {
+		return newCodeVerifierFormatError()
+	}
+	return nil
 }

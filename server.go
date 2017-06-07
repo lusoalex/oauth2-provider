@@ -1,7 +1,6 @@
 package oauth2Provider
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -28,7 +27,7 @@ func (h *MyOauth2Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		handleAuthorizationRequest(w, r)
 	//case "token" : handleTokenRequest(w,r)
 	default:
-		handleError(w, errors.New("No matching resource found"), http.StatusNotFound)
+		http.Error(w, "No matching resource found", http.StatusNotFound)
 	}
 
 	return

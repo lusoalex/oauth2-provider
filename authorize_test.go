@@ -37,12 +37,12 @@ func TestHandleAuthorizationRequest(t *testing.T) {
 
 	testCases := []DataTestCase{
 		{"valid path", buildTestCaseUrl(ValidAuthorizationCodeTestCase), http.StatusOK, ""},
-		{"missing response_type", buildTestCaseUrl(MissingResponseTypeTestCase), http.StatusBadRequest, "Missing parameter response_type"},
-		{"missing client_id", buildTestCaseUrl(MissingClientIdTestCase), http.StatusBadRequest, "Missing parameter client_id"},
-		{"missing redirect_uri", buildTestCaseUrl(MissingRedirectUriTestCase), http.StatusBadRequest, "Missing parameter redirect_uri"},
-		{"invalid response_type", buildTestCaseUrl(InvalidResponseTypeTestCase), http.StatusBadRequest, INVALID_RESPONSE_TYPE},
-		{"invalid client_id", buildTestCaseUrl(InvalidClientIdTestCase), http.StatusBadRequest, INVALID_CLIENT_ID},
-		{"invalid redirect_uri", buildTestCaseUrl(InvalidRedirectUriTestCase), http.StatusBadRequest, INVALID_REDIRECT_URI},
+		{"missing response_type", buildTestCaseUrl(MissingResponseTypeTestCase), http.StatusBadRequest, DESC_UNSUPPORTED_RESPONSE_TYPE},
+		{"missing client_id", buildTestCaseUrl(MissingClientIdTestCase), http.StatusBadRequest, DESC_INVALID_CLIENT},
+		{"missing redirect_uri", buildTestCaseUrl(MissingRedirectUriTestCase), http.StatusBadRequest, DESC_INVALID_REDIRECT_URI},
+		{"invalid response_type", buildTestCaseUrl(InvalidResponseTypeTestCase), http.StatusBadRequest, DESC_UNSUPPORTED_RESPONSE_TYPE},
+		{"invalid client_id", buildTestCaseUrl(InvalidClientIdTestCase), http.StatusBadRequest, DESC_INVALID_CLIENT},
+		{"invalid redirect_uri", buildTestCaseUrl(InvalidRedirectUriTestCase), http.StatusBadRequest, DESC_INVALID_REDIRECT_URI},
 	}
 
 	//And we set it the handler we aim to test
