@@ -12,7 +12,9 @@ func findAndLoadClientSettings(clientId string) (*ClientId, *Oauth2Error) {
 
 	//to implement later
 	if clientId == "toto" {
-		return &ClientId{ClientId: clientId, AllowedRedirectUri: []string{"http://callback"}}, nil
+		return &ClientId{ClientId: clientId, AllowedRedirectUri: []string{"http://callback"}, ForceUseOfPKCE: true}, nil
+	} else if clientId == "titi" {
+		return &ClientId{ClientId: clientId, AllowedRedirectUri: []string{"http://callback"}, ForceUseOfPKCE: false}, nil
 	} else {
 		return nil, NewClientIdError()
 	}

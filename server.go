@@ -25,7 +25,8 @@ func (h *MyOauth2Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		handleHealthCheck(w, r)
 	case "authorize":
 		handleAuthorizationRequest(w, r)
-	//case "token" : handleTokenRequest(w,r)
+	case "token":
+		handleTokenRequest(w, r)
 	default:
 		http.Error(w, "No matching resource found", http.StatusNotFound)
 	}

@@ -15,6 +15,9 @@ const (
 	ERROR_UNSUPPORTED_RESPONSE_TYPE = "unsupported_response_type"
 
 	DESC_UNSUPPORTED_RESPONSE_TYPE = "Missing, unsupported or malformed required response_type parameter."
+	DESC_UNSUPPORTED_GRANT_TYPE    = "Missing, unsupported or malformed required grant_type parameter."
+	DESC_MISSING_CODE_CHALLENGE    = "Missing required code_challenger parameter."
+	DESC_INVALID_CODE_CHALLENGE    = "Invalid code_challange_method parameter"
 	DESC_INVALID_CLIENT            = "Missing or Unknown required client_id parameter."
 	DESC_INVALID_REDIRECT_URI      = "Missing, invalid, or mismatching redirect_uri parameter."
 )
@@ -72,7 +75,7 @@ func NewCodeChallengeError() *Oauth2Error {
 	return &Oauth2Error{
 		status:           http.StatusBadRequest,
 		Reason:           ERROR_INVALID_REQUEST,
-		ErrorDescription: "Missing required code_challenger parameter.",
+		ErrorDescription: DESC_MISSING_CODE_CHALLENGE,
 		ErrorUri:         "https://tools.ietf.org/html/rfc7636#section-4.4.1",
 	}
 }
@@ -81,21 +84,29 @@ func NewCodeChallengeMethodError() *Oauth2Error {
 	return &Oauth2Error{
 		status:           http.StatusBadRequest,
 		Reason:           ERROR_INVALID_REQUEST,
-		ErrorDescription: "Invalid code_challange_method parameter",
+		ErrorDescription: DESC_INVALID_CODE_CHALLENGE,
 		ErrorUri:         "https://tools.ietf.org/html/rfc7636#section-4.3",
 	}
 }
 
-func newCodeVerifierFormatError() *Oauth2Error {
+func NewGrantTypeError() *Oauth2Error {
 	return &Oauth2Error{
 		status:           http.StatusBadRequest,
-		Reason:           ERROR_INVALID_GRANT,
+		Reason:           ERROR_UNSUPPORTED_GRANT_TYPE,
+		ErrorDescription: DESC_UNSUPPORTED_GRANT_TYPE,
+		ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-5.2",
+	}
+}
+
+func NewCodeVerifierFormatError() *Oauth2Error {
+	return &Oauth2Error{
+		status:           http.StatusBadRequest,
+		Reason:           ERROR_INVALID_REQUEST,
 		ErrorDescription: "Missing or malformed code_verifier parameter",
 		ErrorUri:         "https://tools.ietf.org/html/rfc7636#section-4.1",
 	}
 }
-
-func newCodeVerifierError() *Oauth2Error {
+func NewCodeVerifierError() *Oauth2Error {
 	return &Oauth2Error{
 		status:           http.StatusBadRequest,
 		Reason:           ERROR_INVALID_GRANT,
