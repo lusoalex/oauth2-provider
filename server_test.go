@@ -6,6 +6,14 @@ import (
 	"testing"
 )
 
+type DataTestCase struct {
+	name   string
+	method string
+	url    string
+	status int
+	error  string
+}
+
 func TestOauth2Handler(t *testing.T) {
 
 	//Test all declared endpoints.
@@ -33,7 +41,9 @@ func TestOauth2Handler(t *testing.T) {
 			t.Fatal(err)
 		} else {
 			//Check the status code is what we expect.
-			assertStatus(t, &test, resp.StatusCode)
+			if test.status != resp.StatusCode {
+				t.Error(unexpectedCodeStatusMessage(test.name, resp.StatusCode, test.status))
+			}
 		}
 	}
 }

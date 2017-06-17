@@ -1,19 +1,26 @@
 package oauth2Provider
 
 import (
-	"encoding/json"
+	"encoding/base64"
 	"net/http"
+	"net/url"
+	"strings"
+
+	"github.com/satori/go.uuid"
 )
 
 type Oauth2Flow string
 type ResponseType string
 type CodeChallengeMethod string
 type AuthorizationRequest struct {
-	ClientId     ClientId
-	ResponseType ResponseType
-	RedirectUri  string
-	Scope        string
-	State        string
+	ClientId            ClientId
+	ResponseType        ResponseType
+	RedirectUri         string
+	Scope               string
+	State               string
+	codeChallenge       string
+	codeChallengeMethod CodeChallengeMethod
+	Code                string
 }
 
 const (
@@ -55,13 +62,6 @@ func AuthorizationRequestHandler(w http.ResponseWriter, r *http.Request) {
 		handleOauth2Error(w, err)
 		return
 	}
-
-	//TODO Reply with the token
-	w.Header().Set(CONTENT_TYPE, CONTENT_TYPE_JSON)
-	w.WriteHeader(200)
-	at := "yoloooo"
-	json.NewEncoder(w).Encode(Token{&at, nil})
-
 }
 
 /**
@@ -83,7 +83,6 @@ func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, 
 	}
 
 	codeChallengeMethod := CodeChallengeMethod(r.URL.Query().Get(PARAM_CODE_CHALLENGE_METHOD))
-
 	//If code_challenge_method is specified, then the value must be plain or S256
 	if codeChallengeMethod != "" && codeChallengeMethod != CODE_CHALLENGE_METHOD_PLAIN && codeChallengeMethod != CODE_CHALLENGE_METHOD_S256 {
 		return NewCodeChallengeMethodError()
@@ -94,6 +93,22 @@ func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, 
 	if codeChallenge != "" && codeChallengeMethod == "" {
 		codeChallengeMethod = CODE_CHALLENGE_METHOD_PLAIN
 	}
+
+	authRequest.codeChallenge = codeChallenge
+	authRequest.codeChallengeMethod = codeChallengeMethod
+
+	//generate code
+	authRequest.Code = base64.RawURLEncoding.EncodeToString(uuid.NewV4().Bytes())
+
+	//build redirect uri
+	uri, _ := url.Parse(authRequest.RedirectUri)
+	query := uri.Query()
+	query.Add(PARAM_CODE, authRequest.Code)
+
+	uri.RawQuery = query.Encode()
+	http.Redirect(w, r, uri.String(), http.StatusFound)
+
+	//TODO defer code storage
 
 	return nil
 }
@@ -106,6 +121,23 @@ func handleImplicitFlowRequest(w http.ResponseWriter, r *http.Request, authReque
 	} else {
 		authRequest.RedirectUri = redirectUri
 	}
+
+	//TODO generate true jwt
+	accessToken := "yoloooo"
+	//build redirect uri
+	uri, _ := url.Parse(authRequest.RedirectUri)
+	query := uri.Query()
+	query.Add(PARAM_ACCESS_TOKEN, accessToken)
+	query.Add(PARAM_TOKEN_TYPE, string(TOKEN_TYPE_BEARER))
+	//TODO add expires_in
+	//TODO add scope if different
+	if authRequest.State != "" {
+		query.Add(PARAM_STATE, authRequest.State)
+	}
+	uri.RawQuery = query.Encode()
+	location := strings.Replace(uri.String(), "?", "#", 1)
+
+	http.Redirect(w, r, location, http.StatusFound)
 
 	return nil
 }

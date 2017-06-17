@@ -16,9 +16,9 @@ func Oauth2Handler() http.Handler {
 	router.Post("/token", TokenRequestHandler)
 
 	//Set custom NotFound & MethodNotAllowed handler to keep same response format...
-	vestigo.CustomNotFoundHandlerFunc(CustomNotFoundHandler)
+	vestigo.CustomNotFoundHandlerFunc(Oauth2NotFoundHandler)
 	vestigo.CustomMethodNotAllowedHandlerFunc(func(a string) func(w http.ResponseWriter, r *http.Request) {
-		return CustomMethodNotAllowedHandler
+		return Oauth2MethodNotAllowedHandler
 	})
 
 	return router

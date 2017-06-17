@@ -129,7 +129,7 @@ func handleOauth2Error(w http.ResponseWriter, oauth2Error *Oauth2Error) {
 	w.Write([]byte(errorMessage))
 }
 
-func CustomNotFoundHandler(w http.ResponseWriter, r *http.Request) {
+func Oauth2NotFoundHandler(w http.ResponseWriter, r *http.Request) {
 	errorMessage, _ := json.Marshal(&Oauth2Error{
 		Reason: http.StatusText(http.StatusNotFound),
 	})
@@ -137,7 +137,7 @@ func CustomNotFoundHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(errorMessage))
 }
 
-func CustomMethodNotAllowedHandler(w http.ResponseWriter, r *http.Request) {
+func Oauth2MethodNotAllowedHandler(w http.ResponseWriter, r *http.Request) {
 	errorMessage, _ := json.Marshal(&Oauth2Error{
 		Reason: http.StatusText(http.StatusMethodNotAllowed),
 	})

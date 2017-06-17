@@ -8,9 +8,12 @@ import (
 )
 
 type GrantType string
+type TokenType string
 type Token struct {
-	AccessToken  *string `json:"access_token"`
-	RefreshToken *string `json:"refresh_token,omitempty"`
+	AccessToken  *string    `json:"access_token"`
+	TokenType    *TokenType `json:"token_type,omitempty"`
+	ExpireIn     *int       `json:"expires_in,omitempty"`
+	RefreshToken *string    `json:"refresh_token,omitempty"`
 }
 
 const (
@@ -18,9 +21,11 @@ const (
 	GRANT_TYPE_AUTHORIZATION_CODE GrantType = "authorization_code"
 	GRANT_TYPE_PASSWORD           GrantType = "password"
 	GRANT_TYPE_CLIENT_CREDENTIALS GrantType = "client_credentials"
+
+	TOKEN_TYPE_BEARER TokenType = "Bearer"
 )
 
-var validCodeVerifier = regexp.MustCompile("^[a-zA-Z0-9_\\-~\\.]{43,128}$")
+var validCodeVerifier = regexp.MustCompile("^[a-zA-Z0-9_-~.]{43,128}$")
 
 func TokenRequestHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -52,7 +57,7 @@ func TokenRequestHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 	at := "yoloooo"
 	rt := "god bless you"
-	json.NewEncoder(w).Encode(Token{&at, &rt})
+	json.NewEncoder(w).Encode(Token{AccessToken: &at, RefreshToken: &rt})
 
 }
 

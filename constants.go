@@ -17,6 +17,8 @@ const (
 	PARAM_CODE          = "code"
 	PARAM_USERNAME      = "username"
 	PARAM_PASSWORD      = "password"
+	PARAM_ACCESS_TOKEN  = "access_token"
+	PARAM_TOKEN_TYPE    = "token_type"
 
 	//Additional query parameter as specified here : https://tools.ietf.org/html/rfc7636#section-6.1
 	PARAM_CODE_CHALLENGE        = "code_challenge"

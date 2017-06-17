@@ -1,3 +1,9 @@
 # oauth2-provider
 
-work in progress
+Work in progress
+
+## Installation
+
+```
+go get github.com/lusoalex/oauth2-provider
+```
