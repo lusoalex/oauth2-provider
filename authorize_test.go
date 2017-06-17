@@ -4,15 +4,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"strings"
 	"testing"
 )
-
-type DataTestCase struct {
-	name, url string
-	status    int
-	error     string
-}
 
 type AuthorizeTestCase struct {
 	ResponseType, ClientId, RedirectUri, CodeChallenge, CodeChallengeMethod string
@@ -30,6 +23,7 @@ var CodeValidWithDefaultPlainPKCETestCase = &AuthorizeTestCase{ResponseType: str
 var CodeValidWithPlainPKCETestCase = &AuthorizeTestCase{ResponseType: string(RESPONSE_TYPE_CODE), ClientId: CLIENT_ID_WITH_PKCE, RedirectUri: VALID_REDIRECT_URI, CodeChallengeMethod: string(CODE_CHALLENGE_METHOD_PLAIN), CodeChallenge: PLAIN_CODE_CHALLENGE}
 var CodeValidWithS256PKCETestCase = &AuthorizeTestCase{ResponseType: string(RESPONSE_TYPE_CODE), ClientId: CLIENT_ID_WITH_PKCE, RedirectUri: VALID_REDIRECT_URI, CodeChallengeMethod: string(CODE_CHALLENGE_METHOD_S256), CodeChallenge: S256_CODE_CHALLENGE}
 var CodeValidWithoutPKCETestCase = &AuthorizeTestCase{ResponseType: string(RESPONSE_TYPE_CODE), ClientId: CLIENT_ID_WITHOUT_PKCE, RedirectUri: VALID_REDIRECT_URI}
+var CodeValidWithOptionalPKCETestCase = &AuthorizeTestCase{ResponseType: string(RESPONSE_TYPE_CODE), ClientId: CLIENT_ID_WITHOUT_PKCE, RedirectUri: VALID_REDIRECT_URI, CodeChallenge: PLAIN_CODE_CHALLENGE}
 var CodeMissingResponseTypeTestCase = &AuthorizeTestCase{ClientId: CLIENT_ID_WITH_PKCE, RedirectUri: VALID_REDIRECT_URI}
 var CodeMissingClientIdTestCase = &AuthorizeTestCase{ResponseType: string(RESPONSE_TYPE_CODE), RedirectUri: VALID_REDIRECT_URI}
 var CodeMissingRedirectUriTestCase = &AuthorizeTestCase{ResponseType: string(RESPONSE_TYPE_CODE), ClientId: CLIENT_ID_WITH_PKCE}
@@ -46,30 +40,31 @@ var ImpicitErrorTestCase = &AuthorizeTestCase{ResponseType: string(RESPONSE_TYPE
 func TestHandleAuthorizationRequest(t *testing.T) {
 
 	testCases := []DataTestCase{
-		{"valid authorization code with PKCE and default challenge_method flow", buildTestCaseUrl(CodeValidWithDefaultPlainPKCETestCase), http.StatusOK, ""},
-		{"valid authorization code with PKCE and plain challenge_method flow", buildTestCaseUrl(CodeValidWithPlainPKCETestCase), http.StatusOK, ""},
-		{"valid authorization code with PKCE and S256 challenge_method flow", buildTestCaseUrl(CodeValidWithS256PKCETestCase), http.StatusOK, ""},
-		{"valid authorization code without PKCE flow", buildTestCaseUrl(CodeValidWithoutPKCETestCase), http.StatusOK, ""},
-		{"valid implicit flow", buildTestCaseUrl(ImplicitValidTestCase), http.StatusOK, ""},
-		{"valid implicit flow without redirect uri", buildTestCaseUrl(ImplicitWithoutRedirectUriTestCase), http.StatusOK, ""},
-		{"missing response_type", buildTestCaseUrl(CodeMissingResponseTypeTestCase), http.StatusBadRequest, DESC_UNSUPPORTED_RESPONSE_TYPE},
-		{"missing client_id", buildTestCaseUrl(CodeMissingClientIdTestCase), http.StatusBadRequest, DESC_INVALID_CLIENT},
-		{"missing code redirect_uri", buildTestCaseUrl(CodeMissingRedirectUriTestCase), http.StatusBadRequest, DESC_INVALID_REDIRECT_URI},
-		{"missing code code_challenge", buildTestCaseUrl(CodeMissingCodeChallengeTestCse), http.StatusBadRequest, DESC_MISSING_CODE_CHALLENGE},
-		{"invalid code challenge method", buildTestCaseUrl(CodeInvalidCodeChallengeMethodTestCase), http.StatusBadRequest, DESC_INVALID_CODE_CHALLENGE},
-		{"invalid response_type", buildTestCaseUrl(CodeInvalidResponseTypeTestCase), http.StatusBadRequest, DESC_UNSUPPORTED_RESPONSE_TYPE},
-		{"invalid client_id", buildTestCaseUrl(CodeInvalidClientIdTestCase), http.StatusBadRequest, DESC_INVALID_CLIENT},
-		{"invalid redirect_uri", buildTestCaseUrl(CodeInvalidRedirectUriTestCase), http.StatusBadRequest, DESC_INVALID_REDIRECT_URI},
-		{"invalid implicit flow", buildTestCaseUrl(ImpicitErrorTestCase), http.StatusBadRequest, DESC_INVALID_REDIRECT_URI},
+		{name: "Valid authorization code with PKCE and default challenge_method flow", url: buildTestCaseUrl(CodeValidWithDefaultPlainPKCETestCase), status: http.StatusOK},
+		{name: "Valid authorization code with PKCE and plain challenge_method flow", url: buildTestCaseUrl(CodeValidWithPlainPKCETestCase), status: http.StatusOK},
+		{name: "Valid authorization code with PKCE and S256 challenge_method flow", url: buildTestCaseUrl(CodeValidWithS256PKCETestCase), status: http.StatusOK},
+		{name: "Valid authorization code without PKCE flow", url: buildTestCaseUrl(CodeValidWithoutPKCETestCase), status: http.StatusOK},
+		{name: "Valid authorization code without PKCE but given anyway", url: buildTestCaseUrl(CodeValidWithOptionalPKCETestCase), status: http.StatusOK},
+		{name: "Valid implicit flow", url: buildTestCaseUrl(ImplicitValidTestCase), status: http.StatusOK},
+		{name: "Valid implicit flow without redirect uri", url: buildTestCaseUrl(ImplicitWithoutRedirectUriTestCase), status: http.StatusOK},
+		{name: "Missing response_type", url: buildTestCaseUrl(CodeMissingResponseTypeTestCase), status: http.StatusBadRequest, error: DESC_UNSUPPORTED_RESPONSE_TYPE},
+		{name: "Missing client_id", url: buildTestCaseUrl(CodeMissingClientIdTestCase), status: http.StatusBadRequest, error: DESC_INVALID_CLIENT},
+		{name: "Missing code redirect_uri", url: buildTestCaseUrl(CodeMissingRedirectUriTestCase), status: http.StatusBadRequest, error: DESC_INVALID_REDIRECT_URI},
+		{name: "Missing code code_challenge", url: buildTestCaseUrl(CodeMissingCodeChallengeTestCse), status: http.StatusBadRequest, error: DESC_MISSING_CODE_CHALLENGE},
+		{name: "Invalid code challenge method", url: buildTestCaseUrl(CodeInvalidCodeChallengeMethodTestCase), status: http.StatusBadRequest, error: DESC_INVALID_CODE_CHALLENGE},
+		{name: "Invalid response_type", url: buildTestCaseUrl(CodeInvalidResponseTypeTestCase), status: http.StatusBadRequest, error: DESC_UNSUPPORTED_RESPONSE_TYPE},
+		{name: "Invalid client_id", url: buildTestCaseUrl(CodeInvalidClientIdTestCase), status: http.StatusBadRequest, error: DESC_INVALID_CLIENT},
+		{name: "Invalid redirect_uri", url: buildTestCaseUrl(CodeInvalidRedirectUriTestCase), status: http.StatusBadRequest, error: DESC_INVALID_REDIRECT_URI},
+		{name: "Invalid implicit flow", url: buildTestCaseUrl(ImpicitErrorTestCase), status: http.StatusBadRequest, error: DESC_INVALID_REDIRECT_URI},
 	}
 
 	//And we set it the handler we aim to test
-	handler := http.HandlerFunc(handleAuthorizationRequest)
+	handler := http.HandlerFunc(AuthorizationRequestHandler)
 
 	for _, test := range testCases {
 
 		//Initialize request
-		req, err := http.NewRequest("GET", test.url, nil)
+		req, err := http.NewRequest(http.MethodGet, test.url, nil)
 
 		if err != nil {
 			t.Fatal(err)
@@ -79,19 +74,12 @@ func TestHandleAuthorizationRequest(t *testing.T) {
 		rr := httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)
 
-		//Status response
-		status := rr.Code
-
 		//Check the status code is what we expect.
-		if status != test.status {
-			t.Errorf("Test[%v] : handler returned wrong status code: got %v want %v",
-				test.name, status, test.status)
-		}
+		assertStatus(t, &test, rr.Code)
 
 		//If status is not ok, and error message is not as expected
-		if body := rr.Body.String(); status != http.StatusOK && !strings.Contains(body, test.error) {
-			t.Errorf("Test[%v] : handler body response do not contains expected error message [%v], got [%v]",
-				test.name, test.error, body)
+		if rr.Code != http.StatusOK {
+			assertBodyErrorMessage(t, &test, rr.Body.String())
 		}
 	}
 }

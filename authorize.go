@@ -24,7 +24,7 @@ const (
 	CODE_CHALLENGE_METHOD_S256  CodeChallengeMethod = "S256"
 )
 
-func handleAuthorizationRequest(w http.ResponseWriter, r *http.Request) {
+func AuthorizationRequestHandler(w http.ResponseWriter, r *http.Request) {
 
 	var authorizationRequest AuthorizationRequest
 

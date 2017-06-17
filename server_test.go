@@ -1,31 +1,39 @@
 package oauth2Provider
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
-func TestServeHTTP(t *testing.T) {
+func TestOauth2Handler(t *testing.T) {
 
-	handler := new(MyOauth2Handler)
-	server := httptest.NewServer(handler)
+	//Test all declared endpoints.
+	testCases := []DataTestCase{
+		{name: "Health_check endpoint", url: "/health_check", status: http.StatusOK},
+		{name: "Authorize endpoint", method: "GET", url: "/authorize", status: http.StatusBadRequest},
+		{name: "Token endpoint", method: "POST", url: "/token", status: http.StatusBadRequest},
+		{name: "Not Found test", method: "GET", url: "/notfound", status: http.StatusNotFound},
+		{name: "Method Not Allowed test", method: "GET", url: "/token", status: http.StatusMethodNotAllowed},
+	}
+
+	server := httptest.NewServer(Oauth2Handler())
 	defer server.Close() //close when test is ended...
 
-	resp, err := http.Get(server.URL + "/health_check")
+	for _, test := range testCases {
 
-	fmt.Println("server url is ", server.URL)
+		var req *http.Request
+		var err error
 
-	if err != nil {
-		t.Fatal(err)
-	}
+		if req, err = http.NewRequest(test.method, server.URL+test.url, nil); err != nil {
+			t.Fatal(err)
+		}
 
-	if resp.StatusCode != 200 {
-		t.Fatalf("Received non-200 response: %d\n", resp.StatusCode)
-	}
-
-	if contentType := resp.Header.Get(CONTENT_TYPE); contentType != CONTENT_TYPE_JSON {
-		t.Fatalf("Expecting Content-Type value : %v, but was : %v", CONTENT_TYPE_JSON, contentType)
+		if resp, err := http.DefaultClient.Do(req); err != nil {
+			t.Fatal(err)
+		} else {
+			//Check the status code is what we expect.
+			assertStatus(t, &test, resp.StatusCode)
+		}
 	}
 }

@@ -1,40 +1,25 @@
 package oauth2Provider
 
 import (
-	"fmt"
 	"net/http"
-	"regexp"
+
+	"github.com/husobee/vestigo"
 )
 
-type MyOauth2Handler struct{}
+func Oauth2Handler() http.Handler {
 
-var validPath = regexp.MustCompile("^/([a-zA-Z0-9_]+)?.*")
+	router := vestigo.NewRouter()
 
-func (h *MyOauth2Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	//Replace http.HandleFunc by vestigo compliant router.
+	router.Get("/health_check", HealthCheckHandler)
+	router.Get("/authorize", AuthorizationRequestHandler)
+	router.Post("/token", TokenRequestHandler)
 
-	uri := r.URL.Path
+	//Set custom NotFound & MethodNotAllowed handler to keep same response format...
+	vestigo.CustomNotFoundHandlerFunc(CustomNotFoundHandler)
+	vestigo.CustomMethodNotAllowedHandlerFunc(func(a string) func(w http.ResponseWriter, r *http.Request) {
+		return CustomMethodNotAllowedHandler
+	})
 
-	m := validPath.FindStringSubmatch(uri)
-	if m == nil {
-		fmt.Println("aie aie aie aie")
-		return
-	}
-
-	switch m[1] {
-	case "health_check":
-		handleHealthCheck(w, r)
-	case "authorize":
-		handleAuthorizationRequest(w, r)
-	case "token":
-		handleTokenRequest(w, r)
-	default:
-		http.Error(w, "No matching resource found", http.StatusNotFound)
-	}
-
-	return
-}
-
-func LaunchServer() {
-	handler := new(MyOauth2Handler)
-	http.ListenAndServe(":8000", handler)
+	return router
 }

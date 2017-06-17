@@ -22,7 +22,7 @@ const (
 
 var validCodeVerifier = regexp.MustCompile("^[a-zA-Z0-9_\\-~\\.]{43,128}$")
 
-func handleTokenRequest(w http.ResponseWriter, r *http.Request) {
+func TokenRequestHandler(w http.ResponseWriter, r *http.Request) {
 
 	grant_type := GrantType(r.URL.Query().Get(PARAM_GRANT_TYPE))
 
