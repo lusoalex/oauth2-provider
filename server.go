@@ -6,6 +6,21 @@ import (
 	"github.com/husobee/vestigo"
 )
 
+var kvs KeyValueStore
+
+type Oauth2ServerOptions struct {
+	Port string
+	Kvs  KeyValueStore
+}
+
+func setKeyValueStore(new KeyValueStore) {
+	kvs = new
+}
+
+func getKeyValueStore() KeyValueStore {
+	return kvs
+}
+
 func Oauth2Handler() http.Handler {
 
 	router := vestigo.NewRouter()
@@ -22,4 +37,9 @@ func Oauth2Handler() http.Handler {
 	})
 
 	return router
+}
+
+func Serve(options *Oauth2ServerOptions) {
+	setKeyValueStore(options.Kvs)
+	http.ListenAndServe(":"+options.Port, Oauth2Handler())
 }

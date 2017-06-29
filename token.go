@@ -1,6 +1,9 @@
 package oauth2Provider
 
 import (
+	"bytes"
+	"encoding/base64"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -75,6 +78,17 @@ func handleAuthorizationCodeTokenRequest(w http.ResponseWriter, r *http.Request)
 			return err
 		}
 	}
+
+	//TODO retrieve request from key value store and check all parameters are matching...
+	code := r.URL.Query().Get(PARAM_CODE)
+	byteCode, _ := base64.RawURLEncoding.DecodeString(code)
+	byteRequest, _ := kvs.Get([]byte(byteCode))
+
+	var authRequest AuthorizationRequest
+	var buf bytes.Buffer
+	dec := gob.NewDecoder(&buf)
+	buf.Write(byteRequest)
+	dec.Decode(&authRequest)
 
 	return nil
 }

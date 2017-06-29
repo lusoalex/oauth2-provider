@@ -24,6 +24,7 @@ const (
 
 //Main handler we aim to test
 var handler = http.HandlerFunc(AuthorizationRequestHandler)
+var keyVStore = NewFakeKeyValueStore()
 
 /**************************************************/
 /*                                                */
@@ -210,6 +211,8 @@ func TestInvalidImplicitFlow(t *testing.T) {
 //common method for valid authorization code flow
 func testValidAuthorizationCodeFlow(t *testing.T, testName string, codeRequest *AuthorizeTestCase) {
 
+	setKeyValueStore(keyVStore)
+
 	rr := callAuthorizationRequestHandler(t, codeRequest)
 
 	//Check the status code is what we expect.
@@ -286,7 +289,6 @@ func callAuthorizationRequestHandler(t *testing.T, request *AuthorizeTestCase) *
 		// We create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response.
 		rr := httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)
-
 		return rr
 	}
 }

@@ -6,6 +6,12 @@ import (
 	"net/url"
 	"strings"
 
+	"bytes"
+	"encoding/gob"
+	"time"
+
+	"sync"
+
 	"github.com/satori/go.uuid"
 )
 
@@ -20,7 +26,7 @@ type AuthorizationRequest struct {
 	State               string
 	codeChallenge       string
 	codeChallengeMethod CodeChallengeMethod
-	Code                string
+	Code                []byte
 }
 
 const (
@@ -98,18 +104,20 @@ func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, 
 	authRequest.codeChallengeMethod = codeChallengeMethod
 
 	//generate code
-	authRequest.Code = base64.RawURLEncoding.EncodeToString(uuid.NewV4().Bytes())
+	authRequest.Code = uuid.NewV4().Bytes()
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go storeCode(&wg, authRequest)
 
 	//build redirect uri
 	uri, _ := url.Parse(authRequest.RedirectUri)
 	query := uri.Query()
-	query.Add(PARAM_CODE, authRequest.Code)
+	query.Add(PARAM_CODE, base64.RawURLEncoding.EncodeToString(authRequest.Code))
 
 	uri.RawQuery = query.Encode()
 	http.Redirect(w, r, uri.String(), http.StatusFound)
 
-	//TODO defer code storage
-
+	wg.Wait() //wait code have been stored to return the response
 	return nil
 }
 
@@ -164,4 +172,20 @@ func initRedirectUri(r *http.Request, allowedRedirectUris []string, isImplicit b
 	}
 	//No matching redirect_uri found, return an error.
 	return "", NewRedirectUriError(isImplicit)
+}
+
+func storeCode(wg *sync.WaitGroup, authRequest *AuthorizationRequest) error {
+
+	defer wg.Done()
+
+	var value bytes.Buffer
+	enc := gob.NewEncoder(&value)
+	if err := enc.Encode(authRequest); err != nil {
+		//TODO how to manage erors in goroutine??
+		return err
+	}
+
+	getKeyValueStore().Set(authRequest.Code, value.Bytes(), 20*time.Second)
+
+	return nil
 }

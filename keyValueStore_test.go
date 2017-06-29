@@ -1,17 +1,11 @@
-package main
+package oauth2Provider
 
 import (
+	"bytes"
+	"fmt"
+	"testing"
 	"time"
-
-	"github.com/lusoalex/oauth2-provider"
 )
-
-func main() {
-	oauth2Provider.Serve(&oauth2Provider.Oauth2ServerOptions{
-		Kvs:  NewFakeKeyValueStore(),
-		Port: "8000",
-	})
-}
 
 type FakeKeyValueStore struct {
 	code           map[string][]byte
@@ -44,9 +38,33 @@ func (t *FakeKeyValueStore) Del(key []byte) ([]byte, error) {
 	return res, nil
 }
 
+func (t *FakeKeyValueStore) Len() int {
+	return len(t.code)
+}
+
+func (t *FakeKeyValueStore) Log() {
+	fmt.Println("logging kvs values...")
+	for k, v := range t.code {
+		fmt.Printf("key/valye %v/%v\n", k, v)
+	}
+}
+
 func NewFakeKeyValueStore() *FakeKeyValueStore {
 	return &FakeKeyValueStore{
 		code:           make(map[string][]byte),
 		codeExpiration: make(map[string]time.Time),
+	}
+}
+
+func TestKeyValueStore(t *testing.T) {
+	setKeyValueStore(NewFakeKeyValueStore())
+
+	key := []byte("1-2-3")
+	val := []byte{4, 5, 6}
+
+	kvs.Set(key, val, 30*time.Second)
+
+	if got, _ := kvs.Get(key); !bytes.Equal(val, got) {
+		t.Errorf("Did not got expected value, got [%v] while expecting [%v]", got, val)
 	}
 }
