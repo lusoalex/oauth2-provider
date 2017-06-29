@@ -149,6 +149,8 @@ func handleImplicitFlowRequest(w http.ResponseWriter, r *http.Request, authReque
  */
 func initRedirectUri(r *http.Request, allowedRedirectUris []string, isImplicit bool) (string, *Oauth2Error) {
 
+	//TODO : check wildcard uri (be as restrictive as possible)
+
 	//If redirect_uri is not informed and current request is oauth2 implicit flow, then we get it from the settings.
 	if redirectUri := r.URL.Query().Get(PARAM_REDIRECT_URI); redirectUri == "" && isImplicit && len(allowedRedirectUris) == 1 {
 		return allowedRedirectUris[0], nil
