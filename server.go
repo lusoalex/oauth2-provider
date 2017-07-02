@@ -6,19 +6,9 @@ import (
 	"github.com/husobee/vestigo"
 )
 
-var kvs KeyValueStore
-
 type Oauth2ServerOptions struct {
 	Port string
 	Kvs  KeyValueStore
-}
-
-func setKeyValueStore(new KeyValueStore) {
-	kvs = new
-}
-
-func getKeyValueStore() KeyValueStore {
-	return kvs
 }
 
 func Oauth2Handler() http.Handler {
@@ -40,6 +30,8 @@ func Oauth2Handler() http.Handler {
 }
 
 func Serve(options *Oauth2ServerOptions) {
-	setKeyValueStore(options.Kvs)
+	if options.Kvs != nil {
+		SetCustomKeyValueStore(options.Kvs)
+	}
 	http.ListenAndServe(":"+options.Port, Oauth2Handler())
 }

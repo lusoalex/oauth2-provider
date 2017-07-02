@@ -9,6 +9,11 @@ import (
 	"testing"
 )
 
+/**************************************************/
+/*                                                */
+/*        BUILD STRUCTURE USED FOR TESTING        */
+/*                                                */
+/**************************************************/
 type AuthorizeTestCase struct {
 	ResponseType, ClientId, RedirectUri, State, CodeChallenge, CodeChallengeMethod string
 }
@@ -24,7 +29,56 @@ const (
 
 //Main handler we aim to test
 var handler = http.HandlerFunc(AuthorizationRequestHandler)
-var keyVStore = NewFakeKeyValueStore()
+
+/**************************************************/
+/*                                                */
+/*            IMPLICIT FLOW TEST CASES            */
+/*                                                */
+/**************************************************/
+func TestValidImplicitFlowWithNoState(t *testing.T) {
+	//Build a valid implicit call with no state
+	request := &AuthorizeTestCase{
+		ResponseType: string(RESPONSE_TYPE_TOKEN),
+		ClientId:     CLIENT_ID_IMPLICIT,
+		RedirectUri:  VALID_REDIRECT_URI,
+	}
+
+	testValidImplicitFlow(t, "Valid implicit flow", request)
+}
+
+func TestValidImplicitFlowWithState(t *testing.T) {
+	//Build a valid implicit url providing a state that would be returned
+	request := &AuthorizeTestCase{
+		ResponseType: string(RESPONSE_TYPE_TOKEN),
+		ClientId:     CLIENT_ID_IMPLICIT,
+		RedirectUri:  VALID_REDIRECT_URI,
+		State:        "state",
+	}
+
+	testValidImplicitFlow(t, "Valid implicit flow", request)
+}
+
+func TestImplicitFlowWithoutRedirectUri(t *testing.T) {
+	//Build a valid implicit url but without redirect_uri
+	request := &AuthorizeTestCase{
+		ResponseType: string(RESPONSE_TYPE_TOKEN),
+		ClientId:     CLIENT_ID_IMPLICIT,
+	}
+
+	testValidImplicitFlow(t, "Valid implicit flow without redirect uri provided into the url", request)
+}
+
+func TestInvalidImplicitFlow(t *testing.T) {
+	//Build an implicit request with an invalid redirect_uri
+	request := &AuthorizeTestCase{
+		ResponseType: string(RESPONSE_TYPE_TOKEN),
+		ClientId:     CLIENT_ID_IMPLICIT,
+		RedirectUri:  "http://fail/back",
+	}
+
+	testInvalidAuthorizationRequest(t, "Invalid implicit flow", request, DESC_INVALID_REDIRECT_URI)
+
+}
 
 /**************************************************/
 /*                                                */
@@ -160,58 +214,11 @@ func TestCodeWithInvalidRedirectUri(t *testing.T) {
 
 /**************************************************/
 /*                                                */
-/*            IMPLICIT FLOW TEST CASES            */
+/*    COMMON TESTING METHODS FOR ALL USE CASES    */
 /*                                                */
 /**************************************************/
-func TestValidImplicitFlowWithNoState(t *testing.T) {
-	//Build a valid implicit call with no state
-	request := &AuthorizeTestCase{
-		ResponseType: string(RESPONSE_TYPE_TOKEN),
-		ClientId:     CLIENT_ID_IMPLICIT,
-		RedirectUri:  VALID_REDIRECT_URI,
-	}
-
-	testValidImplicitFlow(t, "Valid implicit flow", request)
-}
-
-func TestValidImplicitFlowWithState(t *testing.T) {
-	//Build a valid implicit url providing a state that would be returned
-	request := &AuthorizeTestCase{
-		ResponseType: string(RESPONSE_TYPE_TOKEN),
-		ClientId:     CLIENT_ID_IMPLICIT,
-		RedirectUri:  VALID_REDIRECT_URI,
-		State:        "state",
-	}
-
-	testValidImplicitFlow(t, "Valid implicit flow", request)
-}
-
-func TestImplicitFlowWithoutRedirectUri(t *testing.T) {
-	//Build a valid implicit url but without redirect_uri
-	request := &AuthorizeTestCase{
-		ResponseType: string(RESPONSE_TYPE_TOKEN),
-		ClientId:     CLIENT_ID_IMPLICIT,
-	}
-
-	testValidImplicitFlow(t, "Valid implicit flow without redirect uri provided into the url", request)
-}
-
-func TestInvalidImplicitFlow(t *testing.T) {
-	//Build an implicit request with an invalid redirect_uri
-	request := &AuthorizeTestCase{
-		ResponseType: string(RESPONSE_TYPE_TOKEN),
-		ClientId:     CLIENT_ID_IMPLICIT,
-		RedirectUri:  "http://fail/back",
-	}
-
-	testInvalidAuthorizationRequest(t, "Invalid implicit flow", request, DESC_INVALID_REDIRECT_URI)
-
-}
-
 //common method for valid authorization code flow
 func testValidAuthorizationCodeFlow(t *testing.T, testName string, codeRequest *AuthorizeTestCase) {
-
-	setKeyValueStore(keyVStore)
 
 	rr := callAuthorizationRequestHandler(t, codeRequest)
 

@@ -42,7 +42,7 @@ func TestOauth2Handler(t *testing.T) {
 		} else {
 			//Check the status code is what we expect.
 			if test.status != resp.StatusCode {
-				t.Error(unexpectedCodeStatusMessage(test.name, resp.StatusCode, test.status))
+				t.Errorf("%v test : Unexpected code status, got (%v) while expecting (%v)", test.name, resp.StatusCode, test.status)
 			}
 		}
 	}

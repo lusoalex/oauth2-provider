@@ -2,69 +2,94 @@ package oauth2Provider
 
 import (
 	"bytes"
-	"fmt"
+	"strings"
 	"testing"
 	"time"
 )
 
-type FakeKeyValueStore struct {
-	code           map[string][]byte
-	codeExpiration map[string]time.Time
+type MockKeyValueStore struct {
+	code map[string][]byte
 }
 
-func (t *FakeKeyValueStore) Set(key, value []byte, d time.Duration) error {
-	expiration := time.Now().Add(d)
-	sKey := string(key)
-	t.code[sKey] = value
-	t.codeExpiration[sKey] = expiration
+func (t *MockKeyValueStore) Set(key, value []byte, d time.Duration) error {
 	return nil
 }
 
-func (t *FakeKeyValueStore) Get(key []byte) ([]byte, error) {
-	sKey := string(key)
-	expired := t.codeExpiration[string(key)]
-
-	if time.Now().Before(expired) {
-		return t.code[sKey], nil
-	}
-
-	return nil, nil
+func (t *MockKeyValueStore) Get(key []byte) ([]byte, error) {
+	return []byte{7, 8, 9}, nil
 }
 
-func (t *FakeKeyValueStore) Del(key []byte) ([]byte, error) {
-	sKey := string(key)
-	res := t.code[sKey]
-	delete(t.code, sKey)
-	return res, nil
+func (t *MockKeyValueStore) Del(key []byte) ([]byte, error) {
+	return []byte{7, 8, 9}, nil
 }
 
-func (t *FakeKeyValueStore) Len() int {
-	return len(t.code)
+func (t *MockKeyValueStore) Len() int {
+	return 1
 }
 
-func (t *FakeKeyValueStore) Log() {
-	fmt.Println("logging kvs values...")
-	for k, v := range t.code {
-		fmt.Printf("key/valye %v/%v\n", k, v)
+func (t *MockKeyValueStore) String() string {
+	return "Calling mock kvs log method..."
+}
+
+func NewMockKeyValueStore() *MockKeyValueStore {
+	return &MockKeyValueStore{
+		code: make(map[string][]byte),
 	}
 }
 
-func NewFakeKeyValueStore() *FakeKeyValueStore {
-	return &FakeKeyValueStore{
-		code:           make(map[string][]byte),
-		codeExpiration: make(map[string]time.Time),
-	}
-}
+func TestDefaultKeyValueStore(t *testing.T) {
 
-func TestKeyValueStore(t *testing.T) {
-	setKeyValueStore(NewFakeKeyValueStore())
+	//As some previous test may have initialed it, we must take care of the current kvs size...
+	cuurentKvsLength := getKeyValueStore().Len()
 
 	key := []byte("1-2-3")
 	val := []byte{4, 5, 6}
 
-	kvs.Set(key, val, 30*time.Second)
+	//Set the value
+	getKeyValueStore().Set(key, val, 1*time.Second)
 
-	if got, _ := kvs.Get(key); !bytes.Equal(val, got) {
+	//Check value is well created
+	if got, _ := getKeyValueStore().Get(key); !bytes.Equal(val, got) {
+		t.Errorf("Did not got expected value on get method : [%v] while expecting [%v]", got, val)
+	}
+
+	//Check length growth 1
+	if len := getKeyValueStore().Len(); len != cuurentKvsLength+1 {
+		t.Errorf("Did not got expected length value : got [%v] while expecting [%v]", len, cuurentKvsLength+1)
+	}
+
+	//Check Stringer method
+	if log := getKeyValueStore().String(); !strings.Contains(log, "1-2-3 --> [4 5 6]\n") {
+		t.Errorf("Did not get expected kvs.String() result, got %v", log)
+	}
+
+	//Checking data expiration
+	time.Sleep(1 * time.Second)
+	if got, _ := getKeyValueStore().Get(key); got != nil {
+		t.Errorf("Was expecting a nil value due to expiration on get method : [%v] while expecting nil", got)
+	}
+
+	//Check Del method
+	if got, _ := getKeyValueStore().Del(key); !bytes.Equal(val, got) {
+		t.Errorf("Did not got expected value on delete method : got [%v] while expecting [%v]", got, val)
+	}
+
+	//Check new size value after deleting entry
+	if len := getKeyValueStore().Len(); len != cuurentKvsLength {
+		t.Errorf("Did not got expected length value : got [%v] while expecting [%v]", len, cuurentKvsLength)
+	}
+}
+
+func TestCustomKeyValueStore(t *testing.T) {
+
+	SetCustomKeyValueStore(NewMockKeyValueStore())
+
+	key := []byte("1-2-3")
+	val := []byte{4, 5, 6}
+
+	getKeyValueStore().Set(key, val, 30*time.Second)
+
+	if got, _ := getKeyValueStore().Get(key); !bytes.Equal([]byte{7, 8, 9}, got) {
 		t.Errorf("Did not got expected value, got [%v] while expecting [%v]", got, val)
 	}
 }
