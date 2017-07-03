@@ -8,9 +8,9 @@ import (
 )
 
 type KeyValueStore interface {
-	Set(key, value []byte, d time.Duration) error
-	Get(key []byte) ([]byte, error)
-	Del(key []byte) ([]byte, error)
+	Set(key string, value string, d time.Duration) error
+	Get(key string) (string, error)
+	Del(key string) (string, error)
 	Len() int
 	String() string
 }
@@ -42,29 +42,26 @@ type DefaultKeyValueStore struct {
 	codeExpiration map[string]time.Time
 }
 
-func (t *DefaultKeyValueStore) Set(key, value []byte, d time.Duration) error {
+func (t *DefaultKeyValueStore) Set(key string, value string, d time.Duration) error {
 	expiration := time.Now().Add(d)
-	sKey := string(key)
-	t.code[sKey] = value
-	t.codeExpiration[sKey] = expiration
+	t.code[key] = value
+	t.codeExpiration[key] = expiration
 	return nil
 }
 
-func (t *DefaultKeyValueStore) Get(key []byte) ([]byte, error) {
-	sKey := string(key)
-	expired := t.codeExpiration[string(key)]
+func (t *DefaultKeyValueStore) Get(key string) (string, error) {
+	expired := t.codeExpiration[key]
 
 	if time.Now().Before(expired) {
-		return t.code[sKey], nil
+		return t.code[key], nil
 	}
 
 	return nil, nil
 }
 
-func (t *DefaultKeyValueStore) Del(key []byte) ([]byte, error) {
-	sKey := string(key)
-	res := t.code[sKey]
-	delete(t.code, sKey)
+func (t *DefaultKeyValueStore) Del(key string) (string, error) {
+	res := t.code[key]
+	delete(t.code, key)
 	return res, nil
 }
 

@@ -1,7 +1,6 @@
 package oauth2Provider
 
 import (
-	"encoding/base64"
 	"net/http"
 	"net/url"
 	"strings"
@@ -12,7 +11,7 @@ import (
 
 	"sync"
 
-	"github.com/satori/go.uuid"
+	"github.com/google/uuid"
 )
 
 type Oauth2Flow string
@@ -26,7 +25,7 @@ type AuthorizationRequest struct {
 	State               string
 	codeChallenge       string
 	codeChallengeMethod CodeChallengeMethod
-	Code                []byte
+	Code                string
 }
 
 const (
@@ -43,7 +42,7 @@ func AuthorizationRequestHandler(w http.ResponseWriter, r *http.Request) {
 
 	//initialize client_id
 	if clientId, err := findAndLoadClientSettings(r.URL.Query().Get(PARAM_CLIENT_ID)); err != nil {
-		handleOauth2Error(w, err)
+		err.Handle(w)
 		return
 	} else {
 		authorizationRequest.ClientId = *clientId
@@ -61,11 +60,11 @@ func AuthorizationRequestHandler(w http.ResponseWriter, r *http.Request) {
 	case RESPONSE_TYPE_TOKEN:
 		err = handleImplicitFlowRequest(w, r, &authorizationRequest)
 	default:
-		err = NewResponseTypeError()
+		err = ResponseTypeError
 	}
 
 	if err != nil {
-		handleOauth2Error(w, err)
+		err.Handle(w)
 		return
 	}
 }
@@ -85,13 +84,13 @@ func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, 
 	//Get code_challenge, and if client_id settings require use of PKCE, return an error if not respected.
 	codeChallenge := r.URL.Query().Get(PARAM_CODE_CHALLENGE)
 	if codeChallenge == "" && authRequest.ClientId.ForceUseOfPKCE {
-		return NewCodeChallengeError()
+		return CodeChallengeError
 	}
 
 	codeChallengeMethod := CodeChallengeMethod(r.URL.Query().Get(PARAM_CODE_CHALLENGE_METHOD))
 	//If code_challenge_method is specified, then the value must be plain or S256
 	if codeChallengeMethod != "" && codeChallengeMethod != CODE_CHALLENGE_METHOD_PLAIN && codeChallengeMethod != CODE_CHALLENGE_METHOD_S256 {
-		return NewCodeChallengeMethodError()
+		return CodeChallengeMethodError
 	}
 
 	//If the code_challenge_method is not specified, but there's a code_challenge informed, so we use plain as default
@@ -104,15 +103,15 @@ func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, 
 	authRequest.codeChallengeMethod = codeChallengeMethod
 
 	//generate code
-	authRequest.Code = uuid.NewV4().Bytes()
-	var wg sync.WaitGroup
+	authRequest.Code = uuid.New().String()
+	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go storeCode(&wg, authRequest)
 
 	//build redirect uri
 	uri, _ := url.Parse(authRequest.RedirectUri)
 	query := uri.Query()
-	query.Add(PARAM_CODE, base64.RawURLEncoding.EncodeToString(authRequest.Code))
+	query.Add(PARAM_CODE, authRequest.Code)
 
 	uri.RawQuery = query.Encode()
 	http.Redirect(w, r, uri.String(), http.StatusFound)
@@ -159,7 +158,7 @@ func initRedirectUri(r *http.Request, allowedRedirectUris []string, isImplicit b
 
 	//TODO : check wildcard uri (be as restrictive as possible)
 
-	//If redirect_uri is not informed and current request is oauth2 implicit flow, then we get it from the settings.
+	// If redirect_uri is not informed and current request is oauth2 implicit flow, then we get it from the settings.
 	if redirectUri := r.URL.Query().Get(PARAM_REDIRECT_URI); redirectUri == "" && isImplicit && len(allowedRedirectUris) == 1 {
 		return allowedRedirectUris[0], nil
 	} else {
@@ -171,7 +170,11 @@ func initRedirectUri(r *http.Request, allowedRedirectUris []string, isImplicit b
 		}
 	}
 	//No matching redirect_uri found, return an error.
-	return "", NewRedirectUriError(isImplicit)
+	if isImplicit {
+		return "", ImplicitFlowRedirectUriError
+	} else {
+		return "", RedirectUriError
+	}
 }
 
 func storeCode(wg *sync.WaitGroup, authRequest *AuthorizationRequest) error {
@@ -185,7 +188,7 @@ func storeCode(wg *sync.WaitGroup, authRequest *AuthorizationRequest) error {
 		return err
 	}
 
-	getKeyValueStore().Set(authRequest.Code, value.Bytes(), 20*time.Second)
+	getKeyValueStore().Set(authRequest.Code, value, 20*time.Second)
 
 	return nil
 }
