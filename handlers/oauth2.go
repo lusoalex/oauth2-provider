@@ -11,15 +11,13 @@ type Oauth2Handler struct {
 }
 
 func (h *Oauth2Handler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
-	start := time.Now()
 	w := &WrappedResponseWriter{
 		ResponseWriter: _w,
 		StatusCode: http.StatusOK,
 	}
-	path := req.URL.String()
-	defer func() {
-		log.Printf("%s %s %d %s", req.Method, path, w.StatusCode, time.Since(start))
-	}()
+	defer func(path string, start time.Time) {
+		go log.Printf("%s %s %d %s", req.Method, path, w.StatusCode, time.Since(start))
+	}(req.URL.String(), time.Now())
 
 	var head string
 	head, req.URL.Path = ShiftPath(req.URL.Path)
@@ -29,6 +27,7 @@ func (h *Oauth2Handler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
 		(&HealthCheckHandler{}).ServerHTTP(w, req)
 	default:
 		http.Error(w, "Not found", http.StatusNotFound)
+		return
 	}
 
 	//router := vestigo.NewRouter()
