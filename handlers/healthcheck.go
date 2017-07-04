@@ -9,7 +9,7 @@ type HealthCheckHandler struct {
 
 }
 
-func (h *HealthCheckHandler) ServerHTTP(w http.ResponseWriter, req *http.Request) {
+func (h *HealthCheckHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	var head string
 	head, req.URL.Path = ShiftPath(req.URL.Path)
 

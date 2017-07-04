@@ -5,6 +5,10 @@ import (
 	"./handlers"
 )
 
+type App struct {
+	handlers.Oauth2Handler
+}
+
 func main() {
-	http.ListenAndServe(":8000", &handlers.Oauth2Handler{})
+	http.ListenAndServe(":8000", &App{})
 }

@@ -1,26 +1,30 @@
 package oauth2Provider
 
 import (
-	"bytes"
-	"fmt"
-	"sync"
 	"time"
+	"sync"
+	"github.com/google/uuid"
 )
 
 type KeyValueStore interface {
-	Set(key string, value string, d time.Duration) error
+/*	Set(key string, value string, d time.Duration) error
 	Get(key string) (string, error)
 	Del(key string) (string, error)
 	Len() int
 	String() string
+	Lock()
+	Unlock()*/
 }
 
-var (
+
+var kvs *KeyValueStore
+
+/*var (
 	kvsSetOnce sync.Once
 	kvs        KeyValueStore = NewDefaultKeyValueStore()
-)
+)*/
 
-func SetCustomKeyValueStore(newKvs KeyValueStore) {
+/*func SetCustomKeyValueStore(newKvs KeyValueStore) {
 	kvsSetOnce.Do(func() {
 		kvs = newKvs
 	})
@@ -28,7 +32,7 @@ func SetCustomKeyValueStore(newKvs KeyValueStore) {
 
 func getKeyValueStore() KeyValueStore {
 	return kvs
-}
+}*/
 
 /***********************************************************************/
 /*                                                                     */
@@ -37,11 +41,49 @@ func getKeyValueStore() KeyValueStore {
 /*             PROVIDE ONE CALLING SetCustomKeyValueStore              */
 /*                                                                     */
 /***********************************************************************/
-type DefaultKeyValueStore struct {
-	code           map[string][]byte
-	codeExpiration map[string]time.Time
+
+type AuthorizationRequestWithTimer struct {
+	AuthorizationRequest
+	timer *time.Timer
 }
 
+type DefaultKeyValueStore struct {
+	tokens map[string]AuthorizationRequestWithTimer
+	sync.Mutex
+}
+
+func (kvs *DefaultKeyValueStore) Get(ar *AuthorizationRequest) string {
+	token := uuid.New().String()
+	tokenTimer := time.AfterFunc(1*time.Minute, func() {
+		kvs.Lock()
+		defer kvs.Unlock()
+		delete(kvs.tokens, token)
+	})
+
+	kvs.Lock()
+	defer kvs.Unlock()
+	kvs.tokens[token] = &AuthorizationRequestWithTimer{
+		AuthorizationRequest: ar,
+		timer: tokenTimer,
+	}
+
+	return token
+}
+
+func (kvs *DefaultKeyValueStore) Revoke(token string) (*AuthorizationRequest, bool) {
+	kvs.Lock()
+	defer kvs.Unlock()
+	arwt, ok := kvs.tokens[token]
+	if ok {
+		arwt.timer.Stop()
+		delete(kvs.tokens, token)
+		return arwt.AuthorizationRequest, ok
+	}
+	return nil, false
+}
+
+
+/*
 func (t *DefaultKeyValueStore) Set(key string, value string, d time.Duration) error {
 	expiration := time.Now().Add(d)
 	t.code[key] = value
@@ -83,3 +125,4 @@ func NewDefaultKeyValueStore() *DefaultKeyValueStore {
 		codeExpiration: make(map[string]time.Time),
 	}
 }
+*/

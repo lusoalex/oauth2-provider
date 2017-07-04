@@ -6,9 +6,7 @@ import (
 	"time"
 )
 
-type Oauth2Handler struct {
-
-}
+type Oauth2Handler struct {}
 
 func (h *Oauth2Handler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
 	w := &WrappedResponseWriter{
@@ -16,7 +14,7 @@ func (h *Oauth2Handler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
 		StatusCode: http.StatusOK,
 	}
 	defer func(path string, start time.Time) {
-		go log.Printf("%s %s %d %s", req.Method, path, w.StatusCode, time.Since(start))
+		log.Printf("%s %s %d %s", req.Method, path, w.StatusCode, time.Since(start))
 	}(req.URL.String(), time.Now())
 
 	var head string
@@ -24,7 +22,7 @@ func (h *Oauth2Handler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
 
 	switch head {
 	case "health_check":
-		(&HealthCheckHandler{}).ServerHTTP(w, req)
+		(&HealthCheckHandler{}).ServeHTTP(w, req)
 	default:
 		http.Error(w, "Not found", http.StatusNotFound)
 		return
