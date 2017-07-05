@@ -1,19 +1,6 @@
 {
 	"comment": "",
 	"ignore": "test",
-	"package": [
-		{
-			"checksumSHA1": "sKKrlLoJbSXVZXWCnVfnGfHHK4Q=",
-			"path": "github.com/husobee/vestigo",
-			"revision": "36dc1d84edbb0f153e437acc994b18f76a9a50d7",
-			"revisionTime": "2017-06-24T13:51:42Z"
-		},
-		{
-			"checksumSHA1": "zmC8/3V4ls53DJlNTKDZwPSC/dA=",
-			"path": "github.com/satori/go.uuid",
-			"revision": "5bf94b69c6b68ee1b541973bb8e1144db23a194b",
-			"revisionTime": "2017-03-21T23:07:31Z"
-		}
-	],
-	"rootPath": "oauth2-provider"
+	"package": [],
+	"rootPath": "github.com/lusoalex/oauth2-provider"
 }
