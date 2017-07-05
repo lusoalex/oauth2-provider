@@ -1,4 +1,4 @@
-package oauth2Provider
+package handlers
 
 import (
 	"net/http"

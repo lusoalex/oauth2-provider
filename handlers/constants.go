@@ -1,4 +1,4 @@
-package oauth2Provider
+package handlers
 
 const (
 	CONTENT_TYPE      = "Content-Type"
