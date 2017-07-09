@@ -69,7 +69,7 @@ func handleAuthorizationCodeTokenRequest(w http.ResponseWriter, r *http.Request)
 	var authRequest models.AuthorizationRequest
 
 	//initialize client_id
-	clientId, err := client.FindAndLoadClientSettings(r.URL.Query().Get(constants.PARAM_CLIENT_ID))
+	clientId, err := client.GetClientInformations(r.URL.Query().Get(constants.PARAM_CLIENT_ID))
 	if err != nil {
 		return err
 	}

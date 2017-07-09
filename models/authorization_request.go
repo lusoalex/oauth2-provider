@@ -17,8 +17,7 @@ type AuthorizationRequest struct {
 	RedirectUri         string
 	Scope               string
 	State               string
-	codeChallenge       string
-	codeChallengeMethod CodeChallengeMethod
+	CodeChallenge       string
+	CodeChallengeMethod CodeChallengeMethod
 	Code                string
 }
-

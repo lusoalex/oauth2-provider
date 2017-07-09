@@ -21,7 +21,7 @@ const (
 	DESC_INVALID_REDIRECT_URI      = "Missing, invalid, or mismatching redirect_uri parameter."
 )
 
-var ResponseTypeError = &models.Error{
+var InvalidTypeError = &models.Error{
 	Reason:           ERROR_UNSUPPORTED_RESPONSE_TYPE,
 	ErrorDescription: DESC_UNSUPPORTED_RESPONSE_TYPE,
 	ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-3.1.1",
@@ -30,7 +30,7 @@ var ResponseTypeError = &models.Error{
 var InvalidRedirectUri = &models.Error{
 	Reason:           ERROR_INVALID_REQUEST,
 	ErrorDescription: DESC_INVALID_REDIRECT_URI,
-	ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-4.2.2.1",
+	ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-3.1.2",
 }
 
 var MissingCodeChallenge = &models.Error{

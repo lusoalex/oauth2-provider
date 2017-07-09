@@ -6,7 +6,8 @@ import (
 )
 
 type JsonResponse struct {
-	Content interface{}
+	Content    interface{}
+	HttpStatus int
 }
 
 func (r *JsonResponse) Render() ([]byte, error) {
@@ -15,4 +16,8 @@ func (r *JsonResponse) Render() ([]byte, error) {
 
 func (r *JsonResponse) ContentType() string {
 	return constants.CONTENT_TYPE_JSON
+}
+
+func (r *JsonResponse) Status() int {
+	return r.HttpStatus
 }

@@ -6,7 +6,7 @@ import (
 )
 
 //Should be implemented later...
-func FindAndLoadClientSettings(clientId string) (*models.ClientId, error) {
+func GetClientInformations(clientId string) (*models.ClientId, error) {
 
 	//TODO add authorized oauth2 flows...
 

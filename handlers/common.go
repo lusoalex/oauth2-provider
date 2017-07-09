@@ -59,7 +59,7 @@ func (h *CommonHandler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
 	} else {
 		bytes, _ := r.Render() //TODO manage error
 		w.Header().Set(constants.CONTENT_TYPE, r.ContentType())
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(r.Status())
 		w.Write(bytes)
 	}
 }
