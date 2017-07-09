@@ -1,13 +1,14 @@
 package handlers
 
 import (
+	"errors"
+	"log"
+	"net/http"
+	"oauth2-provider/constants"
+	"oauth2-provider/response"
 	"path"
 	"strings"
-	"net/http"
-	"errors"
 	"time"
-	"log"
-	"oauth2-provider/response"
 )
 
 var NotFound = errors.New("Not found")
@@ -31,7 +32,7 @@ func (w *WrappedResponseWriter) WriteHeader(code int) {
 	w.ResponseWriter.WriteHeader(code)
 }
 
-type CommonHandler struct {}
+type CommonHandler struct{}
 
 func (h *CommonHandler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
 	w := &WrappedResponseWriter{
@@ -50,9 +51,10 @@ func (h *CommonHandler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 		}
 	} else {
-		x, _ := r.Render()
+		bytes, _ := r.Render() //TODO manage error
+		w.Header().Set(constants.CONTENT_TYPE, r.ContentType())
 		w.WriteHeader(http.StatusOK)
-		w.Write(x)
+		w.Write(bytes)
 	}
 }
 

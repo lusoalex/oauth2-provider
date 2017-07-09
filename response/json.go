@@ -1,6 +1,9 @@
 package response
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"oauth2-provider/constants"
+)
 
 type JsonResponse struct {
 	Content interface{}
@@ -8,4 +11,8 @@ type JsonResponse struct {
 
 func (r *JsonResponse) Render() ([]byte, error) {
 	return json.Marshal(r.Content)
+}
+
+func (r *JsonResponse) ContentType() string {
+	return constants.CONTENT_TYPE_JSON
 }
