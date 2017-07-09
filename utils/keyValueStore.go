@@ -4,7 +4,7 @@ import (
 	"time"
 	"sync"
 	"github.com/google/uuid"
-	"oauth2-provider/handlers"
+	"oauth2-provider/models"
 )
 
 type KeyValueStore interface {
@@ -44,16 +44,16 @@ func getKeyValueStore() KeyValueStore {
 /***********************************************************************/
 
 type AuthorizationRequestWithTimer struct {
-	handlers.AuthorizationRequest
+	models.AuthorizationRequest
 	timer *time.Timer
 }
 
 type DefaultKeyValueStore struct {
-	tokens map[string]AuthorizationRequestWithTimer
+	tokens map[string]*AuthorizationRequestWithTimer
 	sync.Mutex
 }
 
-func (kvs *DefaultKeyValueStore) Get(ar *handlers.AuthorizationRequest) string {
+func (kvs *DefaultKeyValueStore) Get(ar *models.AuthorizationRequest) string {
 	token := uuid.New().String()
 	tokenTimer := time.AfterFunc(1*time.Minute, func() {
 		kvs.Lock()
@@ -64,21 +64,21 @@ func (kvs *DefaultKeyValueStore) Get(ar *handlers.AuthorizationRequest) string {
 	kvs.Lock()
 	defer kvs.Unlock()
 	kvs.tokens[token] = &AuthorizationRequestWithTimer{
-		AuthorizationRequest: ar,
+		AuthorizationRequest: *ar,
 		timer: tokenTimer,
 	}
 
 	return token
 }
 
-func (kvs *DefaultKeyValueStore) Revoke(token string) (*handlers.AuthorizationRequest, bool) {
+func (kvs *DefaultKeyValueStore) Revoke(token string) (*models.AuthorizationRequest, bool) {
 	kvs.Lock()
 	defer kvs.Unlock()
 	arwt, ok := kvs.tokens[token]
 	if ok {
 		arwt.timer.Stop()
 		delete(kvs.tokens, token)
-		return arwt.AuthorizationRequest, ok
+		return &arwt.AuthorizationRequest, ok
 	}
 	return nil, false
 }

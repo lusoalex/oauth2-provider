@@ -2,17 +2,13 @@ package handlers
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/gob"
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"regexp"
 
-	oauth2_errors "oauth2-provider/errors"
 	"oauth2-provider/constants"
 	"oauth2-provider/client"
-	"oauth2-provider/utils"
+	"oauth2-provider/models"
 )
 
 type GrantType string
@@ -36,7 +32,7 @@ const (
 var validCodeVerifier = regexp.MustCompile("^[a-zA-Z0-9_-~.]{43,128}$")
 
 func TokenRequestHandler(w http.ResponseWriter, r *http.Request) {
-
+/*
 	grant_type := GrantType(r.URL.Query().Get(constants.PARAM_GRANT_TYPE))
 
 	var err *oauth2_errors.Oauth2Error
@@ -66,11 +62,11 @@ func TokenRequestHandler(w http.ResponseWriter, r *http.Request) {
 	at := "yoloooo"
 	rt := "god bless you"
 	json.NewEncoder(w).Encode(Token{AccessToken: &at, RefreshToken: &rt})
-
+*/
 }
 
-func handleAuthorizationCodeTokenRequest(w http.ResponseWriter, r *http.Request) *oauth2_errors.Oauth2Error {
-	var authRequest AuthorizationRequest
+func handleAuthorizationCodeTokenRequest(w http.ResponseWriter, r *http.Request) error {
+	var authRequest models.AuthorizationRequest
 
 	//initialize client_id
 	clientId, err := client.FindAndLoadClientSettings(r.URL.Query().Get(constants.PARAM_CLIENT_ID))
@@ -94,7 +90,7 @@ func handleAuthorizationCodeTokenRequest(w http.ResponseWriter, r *http.Request)
 	dec := gob.NewDecoder(&buf)
 	//buf.Write(byteRequest)
 	dec.Decode(&authRequest)
-	code := utils.KVS.Get(authRequest)
+	//code := utils.KVS.Get(authRequest)
 
 	return nil
 }
@@ -105,16 +101,16 @@ func handleAuthorizationCodeTokenRequest(w http.ResponseWriter, r *http.Request)
  * unreserved characters [A-Z] / [a-z] / [0-9] / "-" / "." / "_" / "~"
  * length must be between 43 to 128 characters
  */
-func validateCodeVerifier(codeVerifier string) *oauth2_errors.Oauth2Error {
+func validateCodeVerifier(codeVerifier string) error {
 
-	if m := validCodeVerifier.FindStringSubmatch(codeVerifier); m == nil {
-		return oauth2_errors.CodeVerifierFormatError
-	}
+	//if m := validCodeVerifier.FindStringSubmatch(codeVerifier); m == nil {
+	//	return oauth2_errors.InvalidCodeVerifier
+	//}
 
 	//TODO validate code verifier corresponds to code_challenge given on the authorize request
-	if err := oauth2_errors.CodeVerifierError; err != nil {
+	/*if err := oauth2_errors.CodeVerifierError; err != nil {
 		return err
-	}
+	}*/
 
 	return nil
 }

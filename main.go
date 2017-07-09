@@ -3,12 +3,15 @@ package main
 import (
 	"net/http"
 	"oauth2-provider/handlers"
+	"log"
 )
 
 type App struct {
-	handlers.Oauth2Handler
+	handlers.MainHandler
 }
 
 func main() {
-	http.ListenAndServe(":8000", &App{})
+	if serveErr := http.ListenAndServe(":8000", &App{}) ; serveErr != nil {
+		log.Fatalln(serveErr)
+	}
 }

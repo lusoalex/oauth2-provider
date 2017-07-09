@@ -4,7 +4,12 @@ import (
 	"path"
 	"strings"
 	"net/http"
+	"errors"
+	"time"
+	"log"
 )
+
+var NotFound = errors.New("Not found")
 
 func ShiftPath(p string) (head, tail string) {
 	p = path.Clean(p)
@@ -23,4 +28,29 @@ type WrappedResponseWriter struct {
 func (w *WrappedResponseWriter) WriteHeader(code int) {
 	w.StatusCode = code
 	w.ResponseWriter.WriteHeader(code)
+}
+
+type Oauth2ProviderHandler struct {}
+
+func (h *Oauth2ProviderHandler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
+	w := &WrappedResponseWriter{
+		ResponseWriter: _w,
+		StatusCode:     http.StatusOK,
+	}
+	defer func(path string, start time.Time) {
+		log.Printf("%s %s %d %s", req.Method, path, w.StatusCode, time.Since(start))
+	}(req.URL.String(), time.Now())
+
+	if err := h.Handle(w, req); err != nil {
+		switch err {
+		case NotFound:
+			http.NotFound(w, req)
+		default:
+			http.Error(w, "Internal  server error", http.StatusInternalServerError)
+		}
+	}
+}
+
+func (h *Oauth2ProviderHandler) Handle(w http.ResponseWriter, req *http.Request) error {
+	return NotFound
 }

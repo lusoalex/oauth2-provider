@@ -24,4 +24,6 @@ const (
 	PARAM_CODE_CHALLENGE        = "code_challenge"
 	PARAM_CODE_CHALLENGE_METHOD = "code_challenge_method"
 	PARAM_CODE_VERIFIER         = "code_verifier"
+
+	TOKEN_TYPE_BEARER = "Bearer"
 )
