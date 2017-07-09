@@ -29,13 +29,20 @@ type Error interface {
 /*
  * Using fields as specified in https://tools.ietf.org/html/rfc6749#section-5.2
  */
-type BadRequest struct {
+type Oauth2Error struct {
 	error
-	Status           int    `json:"-"`                           //to omit in the body response
 	Reason           string `json:"error"`                       //required
 	ErrorDescription string `json:"error_description,omitempty"` //Optional
 	ErrorUri         string `json:"error_uri,omitempty"`         //Optional
 	State            string `json:"state,omitempty"`             //Required if present into the request.
+}
+
+type BadRequest struct {
+	*Oauth2Error
+}
+
+type ForbiddenRequest struct {
+	*Oauth2Error
 }
 
 var ResponseTypeError = &BadRequest{
@@ -44,16 +51,10 @@ var ResponseTypeError = &BadRequest{
 	ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-3.1.1",
 }
 
-var InvalidClient = &BadRequest{
-	Reason:           ERROR_INVALID_CLIENT,
-	ErrorDescription: DESC_INVALID_CLIENT,
-	ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-2.2",
-}
-
 var InvalidRedirectUri = &BadRequest{
 	Reason:           ERROR_INVALID_REQUEST,
 	ErrorDescription: DESC_INVALID_REDIRECT_URI,
-	ErrorUri: "https://tools.ietf.org/html/rfc6749#section-4.2.2.1",
+	ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-4.2.2.1",
 }
 
 var MissingCodeChallenge = &BadRequest{
@@ -86,13 +87,21 @@ var InvalidCodeVerifier = &BadRequest{
 	ErrorUri:         "https://tools.ietf.org/html/rfc7636#section-4.6",
 }
 
-func (error *BadRequest) Handle(w http.ResponseWriter) {
-	if errorMessage, err := json.Marshal(error) ; err != nil {
+func (error *Oauth2Error) handle(w http.ResponseWriter, status int) {
+	if errorMessage, err := json.Marshal(error); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	} else {
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(status)
 		w.Write([]byte(errorMessage))
 	}
+}
+
+func (error *BadRequest) Handle(w http.ResponseWriter) {
+	error.handle(w, http.StatusBadRequest)
+}
+
+func (error *ForbiddenRequest) Handle(w http.ResponseWriter) {
+	error.handle(w, http.StatusForbidden)
 }
 
 /*

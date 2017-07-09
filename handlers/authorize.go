@@ -58,27 +58,21 @@ func (*AuthorizeHandler) Handle(w http.ResponseWriter, r *http.Request) oauth2_e
 	authorizationRequest.Scope = r.URL.Query().Get(constants.PARAM_SCOPE)
 	authorizationRequest.State = r.URL.Query().Get(constants.PARAM_STATE)
 
-	var oauth2Err *oauth2_errors.Error
 	//Handle authorization code flow request
 	switch authorizationRequest.ResponseType {
 	case RESPONSE_TYPE_CODE:
-		oauth2Err = handleAuthorizationCodeFlowRequest(w, r, &authorizationRequest)
+		return handleAuthorizationCodeFlowRequest(w, r, &authorizationRequest)
 	case RESPONSE_TYPE_TOKEN:
-		oauth2Err = handleImplicitFlowRequest(w, r, &authorizationRequest)
+		return handleImplicitFlowRequest(w, r, &authorizationRequest)
 	default:
-		oauth2Err = oauth2_errors.ResponseTypeError
-	}
-
-	if oauth2Err != nil {
-		oauth2Err.Handle(w)
-		return
+		return oauth2_errors.ResponseTypeError
 	}
 }
 
 /**
  * Even if PKCE (https://tools.ietf.org/html/rfc7636) is not forced, if code_challenge is informed, we will apply it.
  */
-func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *AuthorizationRequest) *oauth2_errors.Oauth2Error {
+func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *AuthorizationRequest) *oauth2_errors.Error {
 
 	//Initialize redirect_uri (required query parameter)
 	if redirectUri, err := initRedirectUri(r, authRequest.ClientId.AllowedRedirectUri, false); err != nil {
@@ -88,7 +82,7 @@ func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, 
 	}
 
 	//Get code_challenge, and if client_id settings require use of PKCE, return an error if not respected.
-	codeChallenge := r.URL.Query().Get(PARAM_CODE_CHALLENGE)
+	codeChallenge := r.URL.Query().Get(constants.PARAM_CODE_CHALLENGE)
 	if codeChallenge == "" && authRequest.ClientId.ForceUseOfPKCE {
 		return oauth2_errors.CodeChallengeError
 	}
@@ -126,7 +120,7 @@ func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, 
 	return nil
 }
 
-func handleImplicitFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *AuthorizationRequest) *oauth2_errors.Oauth2Error {
+func handleImplicitFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *AuthorizationRequest) *oauth2_errors.Error {
 
 	//Initialize redirect_uri (optional query parameter)
 	if redirectUri, err := initRedirectUri(r, authRequest.ClientId.AllowedRedirectUri, true); err != nil {

@@ -26,6 +26,10 @@ func FindAndLoadClientSettings(clientId string) (*ClientId, oauth2_errors.Error)
 	case "tutu":
 		return &ClientId{ClientId: clientId, AllowedRedirectUri: []string{"http://callback"}}, nil
 	default:
-		return nil, oauth2_errors.InvalidClient
+		return nil, &oauth2_errors.BadRequest{
+			Reason:           ERROR_INVALID_CLIENT,
+			ErrorDescription: DESC_INVALID_CLIENT,
+			ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-2.2",
+		}
 	}
 }
