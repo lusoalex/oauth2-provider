@@ -10,7 +10,7 @@ import (
 
 type Oauth2Handler struct{}
 
-func (h *Oauth2Handler) ServeHTTP(_w http.ResponseWriter, req *http.Request) errors.Error {
+func (h *Oauth2Handler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
 	w := &WrappedResponseWriter{
 		ResponseWriter: _w,
 		StatusCode:     http.StatusOK,
@@ -19,14 +19,21 @@ func (h *Oauth2Handler) ServeHTTP(_w http.ResponseWriter, req *http.Request) err
 		log.Printf("%s %s %d %s", req.Method, path, w.StatusCode, time.Since(start))
 	}(req.URL.String(), time.Now())
 
+	if err := h.handle(w, req); err != nil {
+		err.Handle(w)
+	}
+}
+
+func (h *Oauth2Handler) handle(w http.ResponseWriter, req *http.Request) errors.Error {
+
 	var head string
 	head, req.URL.Path = ShiftPath(req.URL.Path)
 
 	switch head {
 	case "health_check":
-		return (&HealthCheckHandler{}).ServeHTTP(w, req)
+		return (&HealthCheckHandler{}).Handle(w, req)
 	case "authorize":
-		return (&AuthorizeHandler{}).ServeHTTP(w, req)
+		return (&AuthorizeHandler{}).Handle(w, req)
 	default:
 		http.Error(w, "Not found", http.StatusNotFound)
 		return nil //todo replace with an error

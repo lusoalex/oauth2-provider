@@ -11,7 +11,7 @@ import (
 type HealthCheckHandler struct {
 }
 
-func (h *HealthCheckHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) oauth2Error.Error {
+func (h *HealthCheckHandler) Handle(w http.ResponseWriter, req *http.Request) oauth2Error.Error {
 	var head string
 	head, req.URL.Path = ShiftPath(req.URL.Path)
 

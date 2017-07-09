@@ -43,7 +43,7 @@ const (
 	CODE_CHALLENGE_METHOD_S256  CodeChallengeMethod = "S256"
 )
 
-func (*AuthorizeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) oauth2_errors.Error {
+func (*AuthorizeHandler) Handle(w http.ResponseWriter, r *http.Request) oauth2_errors.Error {
 
 	var authorizationRequest AuthorizationRequest
 
