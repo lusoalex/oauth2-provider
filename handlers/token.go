@@ -1,4 +1,4 @@
-package oauth2Provider
+package handlers
 
 import (
 	"bytes"
@@ -8,6 +8,11 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+
+	oauth2_errors "oauth2-provider/errors"
+	"oauth2-provider/constants"
+	"oauth2-provider/client"
+	"oauth2-provider/utils"
 )
 
 type GrantType string
@@ -32,9 +37,9 @@ var validCodeVerifier = regexp.MustCompile("^[a-zA-Z0-9_-~.]{43,128}$")
 
 func TokenRequestHandler(w http.ResponseWriter, r *http.Request) {
 
-	grant_type := GrantType(r.URL.Query().Get(PARAM_GRANT_TYPE))
+	grant_type := GrantType(r.URL.Query().Get(constants.PARAM_GRANT_TYPE))
 
-	var err *Oauth2Error
+	var err *oauth2_errors.Oauth2Error
 	//Handle request following the grant_type
 	switch grant_type {
 	case GRANT_TYPE_AUTHORIZATION_CODE:
@@ -47,16 +52,16 @@ func TokenRequestHandler(w http.ResponseWriter, r *http.Request) {
 	case GRANT_TYPE_REFRESH_TOKEN:
 		fmt.Println("TODO: token refresh token")
 	default:
-		err = NewGrantTypeError()
+		err = oauth2_errors.GrantTypeError
 	}
 
 	if err != nil {
-		handleOauth2Error(w, err)
+		err.Handle(w)
 		return
 	}
 
 	//Reply with the token
-	w.Header().Set(CONTENT_TYPE, CONTENT_TYPE_JSON)
+	w.Header().Set(constants.CONTENT_TYPE, constants.CONTENT_TYPE_JSON)
 	w.WriteHeader(200)
 	at := "yoloooo"
 	rt := "god bless you"
@@ -64,31 +69,32 @@ func TokenRequestHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func handleAuthorizationCodeTokenRequest(w http.ResponseWriter, r *http.Request) *Oauth2Error {
+func handleAuthorizationCodeTokenRequest(w http.ResponseWriter, r *http.Request) *oauth2_errors.Oauth2Error {
+	var authRequest AuthorizationRequest
 
 	//initialize client_id
-	clientId, err := findAndLoadClientSettings(r.URL.Query().Get(PARAM_CLIENT_ID))
+	clientId, err := client.FindAndLoadClientSettings(r.URL.Query().Get(constants.PARAM_CLIENT_ID))
 	if err != nil {
 		return err
 	}
 
 	//Manage code_verifier if need
-	if codeVerifier := r.URL.Query().Get(PARAM_CODE_VERIFIER); codeVerifier != "" || clientId.ForceUseOfPKCE {
+	if codeVerifier := r.URL.Query().Get(constants.PARAM_CODE_VERIFIER); codeVerifier != "" || clientId.ForceUseOfPKCE {
 		if err := validateCodeVerifier(codeVerifier); err != nil {
 			return err
 		}
 	}
 
 	//TODO retrieve request from key value store and check all parameters are matching...
-	code := r.URL.Query().Get(PARAM_CODE)
-	byteCode, _ := base64.RawURLEncoding.DecodeString(code)
-	byteRequest, _ := kvs.Get([]byte(byteCode))
+	//code := r.URL.Query().Get(constants.PARAM_CODE)
+	//byteCode, _ := base64.RawURLEncoding.DecodeString(code)
+	//byteRequest, _ := utils.KVS.Get(authRequest)
 
-	var authRequest AuthorizationRequest
 	var buf bytes.Buffer
 	dec := gob.NewDecoder(&buf)
-	buf.Write(byteRequest)
+	//buf.Write(byteRequest)
 	dec.Decode(&authRequest)
+	code := utils.KVS.Get(authRequest)
 
 	return nil
 }
@@ -99,14 +105,14 @@ func handleAuthorizationCodeTokenRequest(w http.ResponseWriter, r *http.Request)
  * unreserved characters [A-Z] / [a-z] / [0-9] / "-" / "." / "_" / "~"
  * length must be between 43 to 128 characters
  */
-func validateCodeVerifier(codeVerifier string) *Oauth2Error {
+func validateCodeVerifier(codeVerifier string) *oauth2_errors.Oauth2Error {
 
 	if m := validCodeVerifier.FindStringSubmatch(codeVerifier); m == nil {
-		return NewCodeVerifierFormatError()
+		return oauth2_errors.CodeVerifierFormatError
 	}
 
 	//TODO validate code verifier corresponds to code_challenge given on the authorize request
-	if err := NewCodeVerifierError(); err != nil {
+	if err := oauth2_errors.CodeVerifierError; err != nil {
 		return err
 	}
 

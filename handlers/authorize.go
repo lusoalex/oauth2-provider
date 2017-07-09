@@ -1,4 +1,4 @@
-package oauth2Provider
+package handlers
 
 import (
 	"net/http"
@@ -12,13 +12,16 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
+	"oauth2-provider/client"
+	oauth2_errors "oauth2-provider/errors"
+	"oauth2-provider/constants"
 )
 
 type Oauth2Flow string
 type ResponseType string
 type CodeChallengeMethod string
 type AuthorizationRequest struct {
-	ClientId            ClientId
+	ClientId            client.ClientId
 	ResponseType        ResponseType
 	RedirectUri         string
 	Scope               string
@@ -41,7 +44,7 @@ func AuthorizationRequestHandler(w http.ResponseWriter, r *http.Request) {
 	var authorizationRequest AuthorizationRequest
 
 	//initialize client_id
-	if clientId, err := findAndLoadClientSettings(r.URL.Query().Get(PARAM_CLIENT_ID)); err != nil {
+	if clientId, err := client.FindAndLoadClientSettings(r.URL.Query().Get(PARAM_CLIENT_ID)); err != nil {
 		err.Handle(w)
 		return
 	} else {
@@ -52,7 +55,7 @@ func AuthorizationRequestHandler(w http.ResponseWriter, r *http.Request) {
 	authorizationRequest.Scope = r.URL.Query().Get(PARAM_SCOPE)
 	authorizationRequest.State = r.URL.Query().Get(PARAM_STATE)
 
-	var err *Oauth2Error
+	var err *oauth2_errors.Oauth2Error
 	//Handle authorization code flow request
 	switch authorizationRequest.ResponseType {
 	case RESPONSE_TYPE_CODE:
@@ -60,7 +63,7 @@ func AuthorizationRequestHandler(w http.ResponseWriter, r *http.Request) {
 	case RESPONSE_TYPE_TOKEN:
 		err = handleImplicitFlowRequest(w, r, &authorizationRequest)
 	default:
-		err = ResponseTypeError
+		err = oauth2_errors.ResponseTypeError
 	}
 
 	if err != nil {
@@ -72,7 +75,7 @@ func AuthorizationRequestHandler(w http.ResponseWriter, r *http.Request) {
 /**
  * Even if PKCE (https://tools.ietf.org/html/rfc7636) is not forced, if code_challenge is informed, we will apply it.
  */
-func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *AuthorizationRequest) *Oauth2Error {
+func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *AuthorizationRequest) *oauth2_errors.Oauth2Error {
 
 	//Initialize redirect_uri (required query parameter)
 	if redirectUri, err := initRedirectUri(r, authRequest.ClientId.AllowedRedirectUri, false); err != nil {
@@ -84,13 +87,13 @@ func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, 
 	//Get code_challenge, and if client_id settings require use of PKCE, return an error if not respected.
 	codeChallenge := r.URL.Query().Get(PARAM_CODE_CHALLENGE)
 	if codeChallenge == "" && authRequest.ClientId.ForceUseOfPKCE {
-		return CodeChallengeError
+		return oauth2_errors.CodeChallengeError
 	}
 
 	codeChallengeMethod := CodeChallengeMethod(r.URL.Query().Get(PARAM_CODE_CHALLENGE_METHOD))
 	//If code_challenge_method is specified, then the value must be plain or S256
 	if codeChallengeMethod != "" && codeChallengeMethod != CODE_CHALLENGE_METHOD_PLAIN && codeChallengeMethod != CODE_CHALLENGE_METHOD_S256 {
-		return CodeChallengeMethodError
+		return oauth2_errors.CodeChallengeMethodError
 	}
 
 	//If the code_challenge_method is not specified, but there's a code_challenge informed, so we use plain as default
@@ -111,7 +114,7 @@ func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, 
 	//build redirect uri
 	uri, _ := url.Parse(authRequest.RedirectUri)
 	query := uri.Query()
-	query.Add(PARAM_CODE, authRequest.Code)
+	query.Add(constants.PARAM_CODE, authRequest.Code)
 
 	uri.RawQuery = query.Encode()
 	http.Redirect(w, r, uri.String(), http.StatusFound)
@@ -120,7 +123,7 @@ func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, 
 	return nil
 }
 
-func handleImplicitFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *AuthorizationRequest) *Oauth2Error {
+func handleImplicitFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *AuthorizationRequest) *oauth2_errors.Oauth2Error {
 
 	//Initialize redirect_uri (optional query parameter)
 	if redirectUri, err := initRedirectUri(r, authRequest.ClientId.AllowedRedirectUri, true); err != nil {
@@ -134,12 +137,12 @@ func handleImplicitFlowRequest(w http.ResponseWriter, r *http.Request, authReque
 	//build redirect uri
 	uri, _ := url.Parse(authRequest.RedirectUri)
 	query := uri.Query()
-	query.Add(PARAM_ACCESS_TOKEN, accessToken)
-	query.Add(PARAM_TOKEN_TYPE, string(TOKEN_TYPE_BEARER))
+	query.Add(constants.PARAM_ACCESS_TOKEN, accessToken)
+	query.Add(constants.PARAM_TOKEN_TYPE, string(constants.TOKEN_TYPE_BEARER))
 	//TODO add expires_in
 	//TODO add scope if different
 	if authRequest.State != "" {
-		query.Add(PARAM_STATE, authRequest.State)
+		query.Add(constants.PARAM_STATE, authRequest.State)
 	}
 	uri.RawQuery = query.Encode()
 	location := strings.Replace(uri.String(), "?", "#", 1)

@@ -1,4 +1,8 @@
-package oauth2Provider
+package client
+
+import (
+	"oauth2-provider/errors"
+)
 
 type ClientId struct {
 	ClientId           string
@@ -8,18 +12,19 @@ type ClientId struct {
 }
 
 //Should be implemented later...
-func findAndLoadClientSettings(clientId string) (*ClientId, *Oauth2Error) {
+func FindAndLoadClientSettings(clientId string) (*ClientId, *errors.Oauth2Error) {
 
 	//TODO add authorized oauth2 flows...
 
 	//to implement later
-	if clientId == "toto" {
+	switch clientId {
+	case "toto":
 		return &ClientId{ClientId: clientId, AllowedRedirectUri: []string{"http://callback", "http://callback2"}, ForceUseOfPKCE: true}, nil
-	} else if clientId == "titi" {
+	case "titi":
 		return &ClientId{ClientId: clientId, AllowedRedirectUri: []string{"http://callback", "http://callback2"}, ForceUseOfPKCE: false}, nil
-	} else if clientId == "tutu" {
+	case "tutu":
 		return &ClientId{ClientId: clientId, AllowedRedirectUri: []string{"http://callback"}}, nil
-	} else {
-		return nil, NewClientIdError()
+	default:
+		return nil, errors.ClientIdError
 	}
 }

@@ -1,9 +1,10 @@
-package oauth2Provider
+package utils
 
 import (
 	"time"
 	"sync"
 	"github.com/google/uuid"
+	"oauth2-provider/handlers"
 )
 
 type KeyValueStore interface {
@@ -17,7 +18,7 @@ type KeyValueStore interface {
 }
 
 
-var kvs *KeyValueStore
+var KVS *DefaultKeyValueStore
 
 /*var (
 	kvsSetOnce sync.Once
@@ -43,7 +44,7 @@ func getKeyValueStore() KeyValueStore {
 /***********************************************************************/
 
 type AuthorizationRequestWithTimer struct {
-	AuthorizationRequest
+	handlers.AuthorizationRequest
 	timer *time.Timer
 }
 
@@ -52,7 +53,7 @@ type DefaultKeyValueStore struct {
 	sync.Mutex
 }
 
-func (kvs *DefaultKeyValueStore) Get(ar *AuthorizationRequest) string {
+func (kvs *DefaultKeyValueStore) Get(ar *handlers.AuthorizationRequest) string {
 	token := uuid.New().String()
 	tokenTimer := time.AfterFunc(1*time.Minute, func() {
 		kvs.Lock()
@@ -70,7 +71,7 @@ func (kvs *DefaultKeyValueStore) Get(ar *AuthorizationRequest) string {
 	return token
 }
 
-func (kvs *DefaultKeyValueStore) Revoke(token string) (*AuthorizationRequest, bool) {
+func (kvs *DefaultKeyValueStore) Revoke(token string) (*handlers.AuthorizationRequest, bool) {
 	kvs.Lock()
 	defer kvs.Unlock()
 	arwt, ok := kvs.tokens[token]

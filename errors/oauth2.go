@@ -1,4 +1,4 @@
-package oauth2Provider
+package errors
 
 import (
 	"encoding/json"
@@ -105,6 +105,7 @@ func (error *Oauth2Error) Handle(w http.ResponseWriter) {
 	}
 }
 
+/*
 func Oauth2NotFoundHandler(w http.ResponseWriter, r *http.Request) {
 	errorMessage, _ := json.Marshal(&Oauth2Error{
 		Reason: http.StatusText(http.StatusNotFound),
@@ -120,3 +121,4 @@ func Oauth2MethodNotAllowedHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusMethodNotAllowed)
 	w.Write([]byte(errorMessage))
 }
+*/
