@@ -43,8 +43,6 @@ func (h *CommonHandler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
 		log.Printf("%s %s %d %s", req.Method, path, w.StatusCode, time.Since(start))
 	}(req.URL.String(), time.Now())
 
-	var response response.Response
-
 	if response, err := h.Handle(w, req); err != nil {
 		switch err {
 		case NotFound:
@@ -52,13 +50,12 @@ func (h *CommonHandler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
 		default:
 			http.Error(w, "Internal  server error", http.StatusInternalServerError)
 		}
-		return
+	} else {
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set(constants.CONTENT_TYPE, response.ContentType())
+		bytes, _ := response.Render() //TODO manage error
+		w.Write(bytes)
 	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set(constants.CONTENT_TYPE, response.ContentType())
-	bytes, _ := response.Render() //TODO manage error
-	w.Write(bytes)
 }
 
 func (h *CommonHandler) Handle(w http.ResponseWriter, req *http.Request) (response.Response, error) {
