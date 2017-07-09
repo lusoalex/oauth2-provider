@@ -3,13 +3,14 @@ package handlers
 import (
 	"io"
 	"net/http"
+	"errors"
 )
 
 type HealthCheckHandler struct {
 
 }
 
-func (h *HealthCheckHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (h *HealthCheckHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) error {
 	var head string
 	head, req.URL.Path = ShiftPath(req.URL.Path)
 
@@ -24,6 +25,7 @@ func (h *HealthCheckHandler) ServeHTTP(w http.ResponseWriter, req *http.Request)
 			// TODO (e.g. Redis) by performing a simple PING, and include them in the response.
 			io.WriteString(w, `{"alive": true}`)
 		default:
+			return errors.Error()
 			http.Error(w, "Not found", http.StatusNotFound)
 		}
 	default:

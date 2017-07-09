@@ -1,4 +1,4 @@
-package errors
+package oauth2
 
 import (
 	"encoding/json"
@@ -22,14 +22,14 @@ const (
 	DESC_INVALID_REDIRECT_URI      = "Missing, invalid, or mismatching redirect_uri parameter."
 )
 
-type Oauth2Error interface {
+type Error interface {
 	Handle(w http.ResponseWriter)
 }
 
 /*
  * Using fields as specified in https://tools.ietf.org/html/rfc6749#section-5.2
  */
-type Oauth2BadRequest struct {
+type BadRequest struct {
 	error
 	Status           int    `json:"-"`                           //to omit in the body response
 	Reason           string `json:"error"`                       //required
@@ -38,55 +38,55 @@ type Oauth2BadRequest struct {
 	State            string `json:"state,omitempty"`             //Required if present into the request.
 }
 
-var ResponseTypeError = &Oauth2BadRequest{
+var ResponseTypeError = &BadRequest{
 	Reason:           ERROR_UNSUPPORTED_RESPONSE_TYPE,
 	ErrorDescription: DESC_UNSUPPORTED_RESPONSE_TYPE,
 	ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-3.1.1",
 }
 
-var InvalidClient = &Oauth2BadRequest{
+var InvalidClient = &BadRequest{
 	Reason:           ERROR_INVALID_CLIENT,
 	ErrorDescription: DESC_INVALID_CLIENT,
 	ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-2.2",
 }
 
-var InvalidRedirectUri = &Oauth2BadRequest{
+var InvalidRedirectUri = &BadRequest{
 	Reason:           ERROR_INVALID_REQUEST,
 	ErrorDescription: DESC_INVALID_REDIRECT_URI,
 	ErrorUri: "https://tools.ietf.org/html/rfc6749#section-4.2.2.1",
 }
 
-var MissingCodeChallenge = &Oauth2BadRequest{
+var MissingCodeChallenge = &BadRequest{
 	Reason:           ERROR_INVALID_REQUEST,
 	ErrorDescription: DESC_MISSING_CODE_CHALLENGE,
 	ErrorUri:         "https://tools.ietf.org/html/rfc7636#section-4.4.1",
 }
 
-var InvalidCodeChallenge = &Oauth2BadRequest{
+var InvalidCodeChallenge = &BadRequest{
 	Reason:           ERROR_INVALID_REQUEST,
 	ErrorDescription: DESC_INVALID_CODE_CHALLENGE,
 	ErrorUri:         "https://tools.ietf.org/html/rfc7636#section-4.3",
 }
 
-var UnsupportedGrantType = &Oauth2BadRequest{
+var UnsupportedGrantType = &BadRequest{
 	Reason:           ERROR_UNSUPPORTED_GRANT_TYPE,
 	ErrorDescription: DESC_UNSUPPORTED_GRANT_TYPE,
 	ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-5.2",
 }
 
-var MissingOrMalformedCodeVerifierFormat = &Oauth2BadRequest{
+var MissingOrMalformedCodeVerifierFormat = &BadRequest{
 	Reason:           ERROR_INVALID_REQUEST,
 	ErrorDescription: "Missing or malformed code_verifier parameter",
 	ErrorUri:         "https://tools.ietf.org/html/rfc7636#section-4.1",
 }
 
-var InvalidCodeVerifier = &Oauth2BadRequest{
+var InvalidCodeVerifier = &BadRequest{
 	Reason:           ERROR_INVALID_GRANT,
 	ErrorDescription: "Invalid code_verifier parameter",
 	ErrorUri:         "https://tools.ietf.org/html/rfc7636#section-4.6",
 }
 
-func (error *Oauth2BadRequest) Handle(w http.ResponseWriter) {
+func (error *BadRequest) Handle(w http.ResponseWriter) {
 	if errorMessage, err := json.Marshal(error) ; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	} else {
