@@ -1,4 +1,4 @@
-package oauth2
+package errors
 
 import (
 	"encoding/json"
