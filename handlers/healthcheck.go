@@ -6,13 +6,14 @@ import (
 
 	"oauth2-provider/constants"
 	"log"
+	"oauth2-provider/response"
 )
 
 type HealthCheckHandler struct {
 	MainHandler
 }
 
-func (h *HealthCheckHandler) Handle(w http.ResponseWriter, req *http.Request) error {
+func (h *HealthCheckHandler) Handle(w http.ResponseWriter, req *http.Request) (response.Response, error) {
 	var head string
 	head, req.URL.Path = ShiftPath(req.URL.Path)
 
@@ -27,8 +28,14 @@ func (h *HealthCheckHandler) Handle(w http.ResponseWriter, req *http.Request) er
 			// TODO In the future we could report back on the status of our DB, or our cache
 			// TODO (e.g. Redis) by performing a simple PING, and include them in the response.
 			io.WriteString(w, `{"alive": true}`)
-			return nil
+			return &response.JsonResponse{
+				Content: &struct {
+					Alive bool
+				}{
+					Alive: true,
+				},
+			}, nil
 		}
 	}
-	return NotFound
+	return nil, NotFound
 }

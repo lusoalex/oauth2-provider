@@ -3,13 +3,14 @@ package handlers
 import (
 	"net/http"
 	"log"
+	"oauth2-provider/response"
 )
 
 type MainHandler struct{
-	Oauth2ProviderHandler
+	CommonHandler
 }
 
-func (h *MainHandler) Handle(w http.ResponseWriter, req *http.Request) error {
+func (h *MainHandler) Handle(w http.ResponseWriter, req *http.Request) (response.Response, error) {
 	var head string
 	head, req.URL.Path = ShiftPath(req.URL.Path)
 
@@ -22,7 +23,7 @@ func (h *MainHandler) Handle(w http.ResponseWriter, req *http.Request) error {
 		return (&AuthorizeHandler{}).Handle(w, req)
 	}
 
-	return NotFound
+	return nil, NotFound
 
 	//router := vestigo.NewRouter()
 

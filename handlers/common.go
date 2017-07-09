@@ -30,9 +30,9 @@ func (w *WrappedResponseWriter) WriteHeader(code int) {
 	w.ResponseWriter.WriteHeader(code)
 }
 
-type Oauth2ProviderHandler struct {}
+type CommonHandler struct {}
 
-func (h *Oauth2ProviderHandler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
+func (h *CommonHandler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
 	w := &WrappedResponseWriter{
 		ResponseWriter: _w,
 		StatusCode:     http.StatusOK,
@@ -51,6 +51,6 @@ func (h *Oauth2ProviderHandler) ServeHTTP(_w http.ResponseWriter, req *http.Requ
 	}
 }
 
-func (h *Oauth2ProviderHandler) Handle(w http.ResponseWriter, req *http.Request) error {
+func (h *CommonHandler) Handle(w http.ResponseWriter, req *http.Request) error {
 	return NotFound
 }

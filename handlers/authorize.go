@@ -4,9 +4,7 @@ import (
 	"net/http"
 	"oauth2-provider/client"
 	"oauth2-provider/constants"
-
 	"oauth2-provider/models"
-	"errors"
 	"oauth2-provider/response"
 )
 
@@ -14,13 +12,13 @@ type Oauth2Flow string
 type AuthorizeHandler struct {
 }
 
-func (*AuthorizeHandler) Handle(w http.ResponseWriter, r *http.Request) (*response.Response, error) {
+func (*AuthorizeHandler) Handle(w http.ResponseWriter, r *http.Request) (response.Response, error) {
 
 	var authorizationRequest models.AuthorizationRequest
 
 	//initialize client_id
 	if clientId, clientIdErr := client.FindAndLoadClientSettings(r.URL.Query().Get(constants.PARAM_CLIENT_ID)); clientIdErr != nil {
-		return clientIdErr
+		return nil, clientIdErr
 	} else {
 		authorizationRequest.ClientId = *clientId
 	}
@@ -30,16 +28,16 @@ func (*AuthorizeHandler) Handle(w http.ResponseWriter, r *http.Request) (*respon
 	authorizationRequest.State = r.URL.Query().Get(constants.PARAM_STATE)
 
 	//Handle authorization code flow request
-	switch authorizationRequest.ResponseType {
+	/*switch authorizationRequest.ResponseType {
 	case models.RESPONSE_TYPE_CODE:
 		return handleAuthorizationCodeFlowRequest(w, r, &authorizationRequest)
 	case models.RESPONSE_TYPE_TOKEN:
 		return handleImplicitFlowRequest(w, r, &authorizationRequest)
 	default:
-		return errors.New("Invalid response type")
-	}
+		return nil, errors.New("Invalid response type")
+	}*/
 
-	return nil
+	return nil, NotFound
 }
 
 /**
