@@ -26,7 +26,8 @@ const (
  * Using fields as specified in https://tools.ietf.org/html/rfc6749#section-5.2
  */
 type Oauth2Error struct {
-	status           int    `json:"omit"`                        //to omit in the body response
+	error
+	Status           int    `json:"-"`                           //to omit in the body response
 	Reason           string `json:"error"`                       //required
 	ErrorDescription string `json:"error_description,omitempty"` //Optional
 	ErrorUri         string `json:"error_uri,omitempty"`         //Optional
@@ -34,63 +35,54 @@ type Oauth2Error struct {
 }
 
 var ResponseTypeError = &Oauth2Error{
-	status:           http.StatusBadRequest,
 	Reason:           ERROR_UNSUPPORTED_RESPONSE_TYPE,
 	ErrorDescription: DESC_UNSUPPORTED_RESPONSE_TYPE,
 	ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-3.1.1",
 }
 
 var ClientIdError = &Oauth2Error{
-	status:           http.StatusBadRequest,
 	Reason:           ERROR_INVALID_CLIENT,
 	ErrorDescription: DESC_INVALID_CLIENT,
 	ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-2.2",
 }
 
 var ImplicitFlowRedirectUriError = &Oauth2Error{
-	status:           http.StatusBadRequest,
 	Reason:           ERROR_INVALID_REQUEST,
 	ErrorDescription: DESC_INVALID_REDIRECT_URI,
 	ErrorUri: "https://tools.ietf.org/html/rfc6749#section-4.2.2.1",
 }
 
 var RedirectUriError = &Oauth2Error{
-	status:           http.StatusBadRequest,
 	Reason:           ERROR_INVALID_REQUEST,
 	ErrorDescription: DESC_INVALID_REDIRECT_URI,
 	ErrorUri: "https://tools.ietf.org/html/rfc6749#section-4.1.2.1",
 }
 
 var CodeChallengeError = &Oauth2Error{
-	status:           http.StatusBadRequest,
 	Reason:           ERROR_INVALID_REQUEST,
 	ErrorDescription: DESC_MISSING_CODE_CHALLENGE,
 	ErrorUri:         "https://tools.ietf.org/html/rfc7636#section-4.4.1",
 }
 
 var CodeChallengeMethodError = &Oauth2Error{
-	status:           http.StatusBadRequest,
 	Reason:           ERROR_INVALID_REQUEST,
 	ErrorDescription: DESC_INVALID_CODE_CHALLENGE,
 	ErrorUri:         "https://tools.ietf.org/html/rfc7636#section-4.3",
 }
 
 var GrantTypeError = &Oauth2Error{
-	status:           http.StatusBadRequest,
 	Reason:           ERROR_UNSUPPORTED_GRANT_TYPE,
 	ErrorDescription: DESC_UNSUPPORTED_GRANT_TYPE,
 	ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-5.2",
 }
 
 var CodeVerifierFormatError = &Oauth2Error{
-	status:           http.StatusBadRequest,
 	Reason:           ERROR_INVALID_REQUEST,
 	ErrorDescription: "Missing or malformed code_verifier parameter",
 	ErrorUri:         "https://tools.ietf.org/html/rfc7636#section-4.1",
 }
 
 var CodeVerifierError = &Oauth2Error{
-	status:           http.StatusBadRequest,
 	Reason:           ERROR_INVALID_GRANT,
 	ErrorDescription: "Invalid code_verifier parameter",
 	ErrorUri:         "https://tools.ietf.org/html/rfc7636#section-4.6",
@@ -100,7 +92,7 @@ func (error *Oauth2Error) Handle(w http.ResponseWriter) {
 	if errorMessage, err := json.Marshal(error) ; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	} else {
-		w.WriteHeader(error.status)
+		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(errorMessage))
 	}
 }
