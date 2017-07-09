@@ -24,7 +24,7 @@ func (h *HealthCheckHandler) Handle(w http.ResponseWriter, req *http.Request) (r
 		case "GET":
 			return &response.JsonResponse{
 				Content: &struct {
-					Alive bool
+					Alive bool `json:"alive"`
 				}{
 					Alive: true,
 				},

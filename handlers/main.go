@@ -6,9 +6,7 @@ import (
 	"oauth2-provider/response"
 )
 
-type MainHandler struct {
-	CommonHandler
-}
+type MainHandler struct { }
 
 func (h MainHandler) Handle(w http.ResponseWriter, req *http.Request) (response.Response, error) {
 	var head string
