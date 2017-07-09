@@ -7,6 +7,7 @@ import (
 	"errors"
 	"time"
 	"log"
+	"oauth2-provider/response"
 )
 
 var NotFound = errors.New("Not found")
@@ -41,16 +42,20 @@ func (h *CommonHandler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
 		log.Printf("%s %s %d %s", req.Method, path, w.StatusCode, time.Since(start))
 	}(req.URL.String(), time.Now())
 
-	if err := h.Handle(w, req); err != nil {
+	if r, err := h.Handle(w, req); err != nil {
 		switch err {
 		case NotFound:
 			http.NotFound(w, req)
 		default:
-			http.Error(w, "Internal  server error", http.StatusInternalServerError)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
 		}
+	} else {
+		x, _ := r.Render()
+		w.WriteHeader(http.StatusOK)
+		w.Write(x)
 	}
 }
 
-func (h *CommonHandler) Handle(w http.ResponseWriter, req *http.Request) error {
-	return NotFound
+func (h *CommonHandler) Handle(w http.ResponseWriter, req *http.Request) (response.Response, error) {
+	return nil, NotFound
 }
