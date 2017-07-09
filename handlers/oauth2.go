@@ -1,17 +1,19 @@
 package handlers
 
 import (
-	"net/http"
 	"log"
+	"net/http"
 	"time"
+
+	"github.com/lusoalex/oauth2-provider/errors"
 )
 
-type Oauth2Handler struct {}
+type Oauth2Handler struct{}
 
-func (h *Oauth2Handler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
+func (h *Oauth2Handler) ServeHTTP(_w http.ResponseWriter, req *http.Request) errors.Error {
 	w := &WrappedResponseWriter{
 		ResponseWriter: _w,
-		StatusCode: http.StatusOK,
+		StatusCode:     http.StatusOK,
 	}
 	defer func(path string, start time.Time) {
 		log.Printf("%s %s %d %s", req.Method, path, w.StatusCode, time.Since(start))
@@ -22,10 +24,12 @@ func (h *Oauth2Handler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
 
 	switch head {
 	case "health_check":
-		(&HealthCheckHandler{}).ServeHTTP(w, req)
+		return (&HealthCheckHandler{}).ServeHTTP(w, req)
+	case "authorize":
+		return (&AuthorizeHandler{}).ServeHTTP(w, req)
 	default:
 		http.Error(w, "Not found", http.StatusNotFound)
-		return
+		return nil //todo replace with an error
 	}
 
 	//router := vestigo.NewRouter()

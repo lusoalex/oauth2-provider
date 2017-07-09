@@ -1,16 +1,17 @@
 package handlers
 
 import (
+	"errors"
 	"io"
 	"net/http"
-	"errors"
+
+	oauth2Error "github.com/lusoalex/oauth2-provider/errors"
 )
 
 type HealthCheckHandler struct {
-
 }
 
-func (h *HealthCheckHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) error {
+func (h *HealthCheckHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) oauth2Error.Error {
 	var head string
 	head, req.URL.Path = ShiftPath(req.URL.Path)
 

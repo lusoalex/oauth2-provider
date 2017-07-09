@@ -11,10 +11,10 @@ import (
 
 	"sync"
 
-	"github.com/google/uuid"
-	"oauth2-provider/client"
-	oauth2_errors "oauth2-provider/errors"
-	"oauth2-provider/constants"
+	"github.com/lusoalex/oauth2-provider/client"
+	"github.com/lusoalex/oauth2-provider/constants"
+	oauth2Error "github.com/lusoalex/oauth2-provider/errors"
+	"github.com/satori/go.uuid"
 )
 
 type Oauth2Flow string
@@ -31,6 +31,9 @@ type AuthorizationRequest struct {
 	Code                string
 }
 
+type AuthorizeHandler struct {
+}
+
 const (
 	RESPONSE_TYPE_CODE  ResponseType = "code"
 	RESPONSE_TYPE_TOKEN ResponseType = "token"
@@ -39,14 +42,13 @@ const (
 	CODE_CHALLENGE_METHOD_S256  CodeChallengeMethod = "S256"
 )
 
-func AuthorizationRequestHandler(w http.ResponseWriter, r *http.Request) {
+func (*AuthorizeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) oauth2Error.Error {
 
 	var authorizationRequest AuthorizationRequest
 
 	//initialize client_id
-	if clientId, err := client.FindAndLoadClientSettings(r.URL.Query().Get(PARAM_CLIENT_ID)); err != nil {
-		err.Handle(w)
-		return
+	if clientId, err := client.FindAndLoadClientSettings(r.URL.Query().Get(constants.PARAM_CLIENT_ID)); err != nil {
+		return err
 	} else {
 		authorizationRequest.ClientId = *clientId
 	}
