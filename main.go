@@ -7,11 +7,15 @@ import (
 )
 
 type App struct {
-	handlers.MainHandler
+	handlers.CommonHandler
 }
 
 func main() {
-	if serveErr := http.ListenAndServe(":8000", &App{}) ; serveErr != nil {
+	if serveErr := http.ListenAndServe(":8000", &App{
+		handlers.CommonHandler{
+			Handler: handlers.MainHandler{},
+		},
+	}) ; serveErr != nil {
 		log.Fatalln(serveErr)
 	}
 }

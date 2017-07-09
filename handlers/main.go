@@ -6,11 +6,11 @@ import (
 	"oauth2-provider/response"
 )
 
-type MainHandler struct{
+type MainHandler struct {
 	CommonHandler
 }
 
-func (h *MainHandler) Handle(w http.ResponseWriter, req *http.Request) (response.Response, error) {
+func (h MainHandler) Handle(w http.ResponseWriter, req *http.Request) (response.Response, error) {
 	var head string
 	head, req.URL.Path = ShiftPath(req.URL.Path)
 

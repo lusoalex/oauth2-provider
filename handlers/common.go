@@ -32,7 +32,13 @@ func (w *WrappedResponseWriter) WriteHeader(code int) {
 	w.ResponseWriter.WriteHeader(code)
 }
 
-type CommonHandler struct{}
+type Handler interface {
+	Handle(w http.ResponseWriter, req *http.Request) (response.Response, error)
+}
+
+type CommonHandler struct {
+	Handler Handler
+}
 
 func (h *CommonHandler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
 	w := &WrappedResponseWriter{
@@ -43,7 +49,7 @@ func (h *CommonHandler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
 		log.Printf("%s %s %d %s", req.Method, path, w.StatusCode, time.Since(start))
 	}(req.URL.String(), time.Now())
 
-	if r, err := h.Handle(w, req); err != nil {
+	if r, err := h.Handler.Handle(w, req); err != nil {
 		switch err {
 		case NotFound:
 			http.NotFound(w, req)
@@ -56,8 +62,4 @@ func (h *CommonHandler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write(bytes)
 	}
-}
-
-func (h *CommonHandler) Handle(w http.ResponseWriter, req *http.Request) (response.Response, error) {
-	return nil, NotFound
 }
