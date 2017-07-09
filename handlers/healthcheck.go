@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	oauth2Error "github.com/lusoalex/oauth2-provider/errors"
+	oauth2Error "oauth2-provider/errors"
 )
 
 type HealthCheckHandler struct {
