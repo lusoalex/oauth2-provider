@@ -13,9 +13,9 @@ import (
 
 	"oauth2-provider/client"
 	"oauth2-provider/constants"
-	oauth2Error "oauth2-provider/errors"
+	oauth2_errors "oauth2-provider/errors"
 
-	"github.com/satori/go.uuid"
+	"github.com/google/uuid"
 )
 
 type Oauth2Flow string
@@ -43,7 +43,7 @@ const (
 	CODE_CHALLENGE_METHOD_S256  CodeChallengeMethod = "S256"
 )
 
-func (*AuthorizeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) oauth2Error.Error {
+func (*AuthorizeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) oauth2_errors.Error {
 
 	var authorizationRequest AuthorizationRequest
 
