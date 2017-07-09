@@ -11,10 +11,10 @@ import (
 
 	"sync"
 
-	"github.com/lusoalex/oauth2-provider/client"
-	"github.com/lusoalex/oauth2-provider/constants"
-	oauth2Error "github.com/lusoalex/oauth2-provider/errors"
-	"github.com/satori/go.uuid"
+	"oauth2-provider/client"
+	"oauth2-provider/constants"
+	oauth2_errors "oauth2-provider/errors"
+	"github.com/google/uuid"
 )
 
 type Oauth2Flow string
@@ -42,34 +42,34 @@ const (
 	CODE_CHALLENGE_METHOD_S256  CodeChallengeMethod = "S256"
 )
 
-func (*AuthorizeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) oauth2Error.Error {
+func (*AuthorizeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) oauth2_errors.Error {
 
 	var authorizationRequest AuthorizationRequest
 
 	//initialize client_id
-	if clientId, err := client.FindAndLoadClientSettings(r.URL.Query().Get(constants.PARAM_CLIENT_ID)); err != nil {
-		return err
+	if clientId, clientIdErr := client.FindAndLoadClientSettings(r.URL.Query().Get(constants.PARAM_CLIENT_ID)); clientIdErr != nil {
+		return clientIdErr
 	} else {
 		authorizationRequest.ClientId = *clientId
 	}
 
-	authorizationRequest.ResponseType = ResponseType(r.URL.Query().Get(PARAM_RESPONSE_TYPE))
-	authorizationRequest.Scope = r.URL.Query().Get(PARAM_SCOPE)
-	authorizationRequest.State = r.URL.Query().Get(PARAM_STATE)
+	authorizationRequest.ResponseType = ResponseType(r.URL.Query().Get(constants.PARAM_RESPONSE_TYPE))
+	authorizationRequest.Scope = r.URL.Query().Get(constants.PARAM_SCOPE)
+	authorizationRequest.State = r.URL.Query().Get(constants.PARAM_STATE)
 
-	var err *oauth2_errors.Oauth2Error
+	var oauth2Err *oauth2_errors.Error
 	//Handle authorization code flow request
 	switch authorizationRequest.ResponseType {
 	case RESPONSE_TYPE_CODE:
-		err = handleAuthorizationCodeFlowRequest(w, r, &authorizationRequest)
+		oauth2Err = handleAuthorizationCodeFlowRequest(w, r, &authorizationRequest)
 	case RESPONSE_TYPE_TOKEN:
-		err = handleImplicitFlowRequest(w, r, &authorizationRequest)
+		oauth2Err = handleImplicitFlowRequest(w, r, &authorizationRequest)
 	default:
-		err = oauth2_errors.ResponseTypeError
+		oauth2Err = oauth2_errors.ResponseTypeError
 	}
 
-	if err != nil {
-		err.Handle(w)
+	if oauth2Err != nil {
+		oauth2Err.Handle(w)
 		return
 	}
 }

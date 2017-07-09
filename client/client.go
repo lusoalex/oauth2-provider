@@ -1,8 +1,8 @@
 package client
 
 import (
-	"github.com/lusoalex/oauth2-provider/errors"
-	"github.com/lusoalex/oauth2-provider/handlers"
+	oauth2_errors "oauth2-provider/errors"
+	"oauth2-provider/handlers"
 )
 
 type ClientId struct {
@@ -13,7 +13,7 @@ type ClientId struct {
 }
 
 //Should be implemented later...
-func FindAndLoadClientSettings(clientId string) (*ClientId, errors.Error) {
+func FindAndLoadClientSettings(clientId string) (*ClientId, oauth2_errors.Error) {
 
 	//TODO add authorized oauth2 flows...
 
@@ -26,6 +26,6 @@ func FindAndLoadClientSettings(clientId string) (*ClientId, errors.Error) {
 	case "tutu":
 		return &ClientId{ClientId: clientId, AllowedRedirectUri: []string{"http://callback"}}, nil
 	default:
-		return nil, errors.InvalidClient
+		return nil, oauth2_errors.InvalidClient
 	}
 }
