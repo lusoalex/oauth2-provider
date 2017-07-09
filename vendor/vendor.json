@@ -2,5 +2,5 @@
 	"comment": "",
 	"ignore": "test",
 	"package": [],
-	"rootPath": "github.com/lusoalex/oauth2-provider"
+	"rootPath": "oauth2-provider"
 }

@@ -1,8 +1,9 @@
 package handlers
 
 import (
-	oauth2_errors "oauth2-provider/errors"
 	"net/http"
+
+	oauth2_errors "oauth2-provider/errors"
 )
 
 type Oauth2ErrorHandler struct {

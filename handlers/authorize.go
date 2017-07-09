@@ -11,9 +11,10 @@ import (
 
 	"sync"
 
-	"github.com/lusoalex/oauth2-provider/client"
-	"github.com/lusoalex/oauth2-provider/constants"
-	oauth2Error "github.com/lusoalex/oauth2-provider/errors"
+	"oauth2-provider/client"
+	"oauth2-provider/constants"
+	oauth2Error "oauth2-provider/errors"
+
 	"github.com/satori/go.uuid"
 )
 

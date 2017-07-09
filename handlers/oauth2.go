@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/lusoalex/oauth2-provider/errors"
+	"oauth2-provider/errors"
 )
 
 type Oauth2Handler struct{}
