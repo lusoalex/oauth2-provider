@@ -1,23 +1,23 @@
 package response
 
 import (
+	"net/http"
 	"encoding/json"
 	"oauth2-provider/constants"
 )
 
-type JsonResponse struct {
-	ResponseStatus
+type Json struct {
 	Content interface{}
 }
 
-func (r *JsonResponse) Render() ([]byte, error) {
-	return json.Marshal(r.Content)
+func (r *Json) Render() (*HTTPResponse, error) {
+	body, err := json.Marshal(r.Content)
+	if err != nil {
+		return nil, err
+	}
+	return NewHTTPResponse(body, "application/json"), nil
 }
 
-func (r *JsonResponse) ContentType() string {
-	return constants.CONTENT_TYPE_JSON
-}
-
-func NewJsonResponse(content interface{}) *JsonResponse {
+func NewJsonResponse(content interface{}) *Json {
 	return &JsonResponse{Content: content}
 }

@@ -22,13 +22,13 @@ func (h *HealthCheckHandler) Handle(w http.ResponseWriter, req *http.Request) (r
 	case "":
 		switch req.Method {
 		case "GET":
-			return &response.JsonResponse{
-				Content: &struct {
+			return response.OK(NewJsonResponse(
+				&struct {
 					Alive bool `json:"alive"`
 				}{
 					Alive: true,
-				},
-			}, nil
+				}
+			))
 		}
 	}
 	return nil, NotFound
