@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"net/http"
 	"log"
+	"net/http"
 	"oauth2-provider/response"
 )
 
-type MainHandler struct { }
+type MainHandler struct{}
 
 func (h MainHandler) Handle(w http.ResponseWriter, req *http.Request) (response.Response, error) {
 	var head string
@@ -22,19 +22,4 @@ func (h MainHandler) Handle(w http.ResponseWriter, req *http.Request) (response.
 	}
 
 	return nil, NotFound
-
-	//router := vestigo.NewRouter()
-
-	//Replace http.HandleFunc by vestigo compliant router.
-	//router.Get("/health_check", HealthCheckHandler)
-	//router.Get("/authorize", AuthorizationRequestHandler)
-	//router.Post("/token", TokenRequestHandler)
-
-	//Set custom NotFound & MethodNotAllowed handler to keep same response format...
-	//vestigo.CustomNotFoundHandlerFunc(Oauth2NotFoundHandler)
-	//vestigo.CustomMethodNotAllowedHandlerFunc(func(a string) func(w http.ResponseWriter, r *http.Request) {
-	//	return Oauth2MethodNotAllowedHandler
-	//})
-
-	//return router
 }

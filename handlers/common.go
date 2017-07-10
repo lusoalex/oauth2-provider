@@ -4,7 +4,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"oauth2-provider/constants"
 	"oauth2-provider/response"
 	"path"
 	"strings"
@@ -58,7 +57,7 @@ func (h *CommonHandler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
 		}
 	} else {
 		bytes, _ := r.Render() //TODO manage error
-		w.Header().Set(constants.CONTENT_TYPE, r.ContentType())
+		w.Header().Set("Content-Type", r.ContentType())
 		w.WriteHeader(r.Status())
 		w.Write(bytes)
 	}

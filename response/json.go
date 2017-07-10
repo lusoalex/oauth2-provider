@@ -1,9 +1,7 @@
 package response
 
 import (
-	"net/http"
 	"encoding/json"
-	"oauth2-provider/constants"
 )
 
 type Json struct {
@@ -19,5 +17,5 @@ func (r *Json) Render() (*HTTPResponse, error) {
 }
 
 func NewJsonResponse(content interface{}) *Json {
-	return &JsonResponse{Content: content}
+	return &Json{Content: content}
 }
