@@ -57,9 +57,6 @@ func (h *CommonHandler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 		}
 	} else {
-		bytes, _ := r.Render() //TODO manage error
-		w.Header().Set(constants.CONTENT_TYPE, r.ContentType())
-		w.WriteHeader(r.Status())
-		w.Write(bytes)
+		r.Send(w)
 	}
 }
