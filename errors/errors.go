@@ -6,7 +6,6 @@ import (
 
 const (
 	ERROR_INVALID_REQUEST           = "invalid_request"
-	ERROR_INVALID_CLIENT            = "invalid_client"
 	ERROR_INVALID_GRANT             = "invalid_grant"
 	ERROR_UNAUTHORIZED_CLIENT       = "unauthorized_client"
 	ERROR_UNSUPPORTED_GRANT_TYPE    = "unsupported_grant_type"
@@ -17,7 +16,6 @@ const (
 	DESC_UNSUPPORTED_GRANT_TYPE    = "Missing, unsupported or malformed required grant_type parameter."
 	DESC_MISSING_CODE_CHALLENGE    = "Missing required code_challenger parameter."
 	DESC_INVALID_CODE_CHALLENGE    = "Invalid code_challange_method parameter"
-	DESC_INVALID_CLIENT            = "Missing or Unknown required client_id parameter."
 	DESC_INVALID_REDIRECT_URI      = "Missing, invalid, or mismatching redirect_uri parameter."
 )
 
@@ -43,12 +41,6 @@ var InvalidCodeChallenge = &models.Error{
 	Reason:           ERROR_INVALID_REQUEST,
 	ErrorDescription: DESC_INVALID_CODE_CHALLENGE,
 	ErrorUri:         "https://tools.ietf.org/html/rfc7636#section-4.3",
-}
-
-var INVALID_CLIENT_ID = &models.Error{
-	Reason:           ERROR_INVALID_CLIENT,
-	ErrorDescription: DESC_INVALID_CLIENT,
-	ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-2.2",
 }
 
 var UnsupportedGrantType = &models.Error{

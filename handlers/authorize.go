@@ -3,11 +3,14 @@ package handlers
 import (
 	"bytes"
 	"net/http"
+	"net/url"
 	"oauth2-provider/client"
 	"oauth2-provider/constants"
 	oauth2_errors "oauth2-provider/errors"
 	"oauth2-provider/models"
 	"oauth2-provider/response"
+	"oauth2-provider/user"
+	"strings"
 )
 
 type AuthorizeHandler struct {
@@ -20,7 +23,7 @@ func (*AuthorizeHandler) Handle(w http.ResponseWriter, r *http.Request) (*respon
 
 	//initialize client_id
 	if clientId, clientIdErr := client.GetClientInformations(r.URL.Query().Get(constants.PARAM_CLIENT_ID)); clientIdErr != nil {
-		return nil, clientIdErr
+		return response.BadRequest(response.NewJsonResponse(client.INVALID_CLIENT_ID))
 	} else {
 		authorizationRequest.ClientId = *clientId
 	}
@@ -100,7 +103,7 @@ func handleAuthorizationCodeFlowRequest(r *http.Request, authRequest *models.Aut
 
 		return nil, errors.New("Not implemented yet")
 	*/
-	return response.OK(response.NewJsonResponse(&struct {
+	return response.NotImplemented(response.NewJsonResponse(&struct {
 		Message string
 	}{
 		Message: "Not implemented yet",
@@ -117,36 +120,31 @@ func handleImplicitFlowRequest(w http.ResponseWriter, r *http.Request, authReque
 		)
 	}
 
-	//TODO display login form
-	return response.NewHTTPResponse(HandleLoginPage(), "text/html"), nil
+	if form, user := HandleLoginPage(r); user == nil {
+		return response.NewHTTPResponse(form, "text/html"), nil
+	} else {
+		//TODO generate true jwt
+		accessToken := "token." + user.Firstname + "." + user.Name
+		//build redirect uri
+		uri, _ := url.Parse(authRequest.RedirectUri)
+		query := uri.Query()
+		query.Add(constants.PARAM_ACCESS_TOKEN, accessToken)
+		query.Add(constants.PARAM_TOKEN_TYPE, string(constants.TOKEN_TYPE_BEARER))
+		//TODO add expires_in
+		//TODO add scope if different
+		if authRequest.State != "" {
+			query.Add(constants.PARAM_STATE, authRequest.State)
+		}
+		uri.RawQuery = query.Encode()
+		location := strings.Replace(uri.String(), "?", "#", 1)
 
-	/*
-			//TODO generate true jwt
-			accessToken := "yoloooo"
-			//build redirect uri
-			uri, _ := url.Parse(authRequest.RedirectUri)
-			query := uri.Query()
-			query.Add(constants.PARAM_ACCESS_TOKEN, accessToken)
-			query.Add(constants.PARAM_TOKEN_TYPE, string(constants.TOKEN_TYPE_BEARER))
-			//TODO add expires_in
-			//TODO add scope if different
-			if authRequest.State != "" {
-				query.Add(constants.PARAM_STATE, authRequest.State)
-			}
-			uri.RawQuery = query.Encode()
-			location := strings.Replace(uri.String(), "?", "#", 1)
-
-			http.Redirect(w, r, location, http.StatusFound)
-
-
-		return response.BadRequest(
-			response.NewJsonResponse(&struct {
-				Message string
-			}{
-				Message: "Not imlemented yet",
-			}),
-		)
-	*/
+		http.Redirect(w, r, location, http.StatusFound)
+	}
+	return response.NotImplemented(response.NewJsonResponse(&struct {
+		Message string
+	}{
+		Message: "Not implemented yet",
+	})) //.NotImplemented()
 }
 
 /*
@@ -201,20 +199,26 @@ func storeCode(wg *sync.WaitGroup, authRequest *AuthorizationRequest) error {
 }
 */
 
-func HandleLoginPage() []byte {
+func HandleLoginPage(r *http.Request) ([]byte, *user.User) {
+
+	r.ParseForm()
+	if login, password := r.Form.Get("login"), r.Form.Get("password"); r.Method == "POST" && login != "" && password != "" {
+		if user, ok := user.MatchingCredentials(login, password); ok == true {
+			return nil, user
+		}
+	}
 
 	var w bytes.Buffer
-
 	w.Write([]byte("<!DOCTYPE html>"))
 	w.Write([]byte("<html><head>"))
 	w.Write([]byte("<meta charset=\"UTF-8\">"))
 	w.Write([]byte("<title>Login Page</title>"))
 	w.Write([]byte("</head><body>"))
-	w.Write([]byte("<div><form method=\"post\" action=\"/login\">"))
+	w.Write([]byte("<div><form method=\"post\" >"))
 	w.Write([]byte("Login<br><input type=\"text\" name=\"login\" placeholder=\"Login\" required=\"required\"/><br><br>"))
 	w.Write([]byte("Password<br><input type=\"password\" name=\"password\" placeholder=\"Password\" required=\"required\"/><br><br>"))
 	w.Write([]byte("<button type=\"submit\">LOGIN</button>"))
 	w.Write([]byte("</form></div></body></html>"))
 
-	return w.Bytes()
+	return w.Bytes(), nil
 }
