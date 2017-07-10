@@ -10,7 +10,6 @@ import (
 	"oauth2-provider/response"
 )
 
-type Oauth2Flow string
 type AuthorizeHandler struct {
 	MainHandler
 }
@@ -54,6 +53,10 @@ func (*AuthorizeHandler) Handle(w http.ResponseWriter, r *http.Request) (respons
  * Even if PKCE (https://tools.ietf.org/html/rfc7636) is not forced, if code_challenge is informed, we will apply it.
  */
 func handleAuthorizationCodeFlowRequest(r *http.Request, authRequest *models.AuthorizationRequest) response.Response {
+
+	if !isGrantTypeAllowed(models.GRANT_TYPE_AUTHORIZATION_CODE, authRequest.ClientId.AllowedGrantType) {
+		return response.NewJsonResponse(oauth2_errors.UnauthorizedClient(models.GRANT_TYPE_AUTHORIZATION_CODE)).BadRequest()
+	}
 
 	//Get code_challenge, and if client_id settings require use of PKCE, return an error if not respected.
 	codeChallenge := r.URL.Query().Get(constants.PARAM_CODE_CHALLENGE)
@@ -102,6 +105,10 @@ func handleAuthorizationCodeFlowRequest(r *http.Request, authRequest *models.Aut
 
 func handleImplicitFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *models.AuthorizationRequest) response.Response {
 
+	if !isGrantTypeAllowed(models.GRANT_TYPE_IMPLICIT, authRequest.ClientId.AllowedGrantType) {
+		return response.NewJsonResponse(oauth2_errors.UnauthorizedClient(models.GRANT_TYPE_IMPLICIT)).BadRequest()
+	}
+
 	//TODO display login form
 
 	/*
@@ -149,6 +156,15 @@ func initRedirectUri(r *http.Request, allowedRedirectUris []string) string {
 
 	//No matching redirect_uri found, return an error.
 	return nil
+}
+
+func isGrantTypeAllowed(grantType models.GrantType, allowedGrantType []models.GrantType) bool {
+	for _, allowedGrant := range allowedGrantType {
+		if grantType == allowedGrant {
+			return true
+		}
+	}
+	return false
 }
 
 /*

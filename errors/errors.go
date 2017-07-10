@@ -63,6 +63,14 @@ var InvalidCodeVerifier = &models.Error{
 	ErrorUri:         "https://tools.ietf.org/html/rfc7636#section-4.6",
 }
 
+func UnauthorizedClient(grantType models.GrantType) *models.Error {
+	return &models.Error{
+		Reason:           ERROR_UNAUTHORIZED_CLIENT,
+		ErrorDescription: string(grantType) + " grant not allowed for this client",
+		ErrorUri:         "https://tools.ietf.org/html/rfc7636#section-5.2",
+	}
+}
+
 /*func (error *Oauth2Error) handle(w http.ResponseWriter, status int) {
 	if errorMessage, err := json.Marshal(error); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
