@@ -2,12 +2,13 @@ package response
 
 import (
 	"encoding/json"
+	"net/http"
 	"oauth2-provider/constants"
 )
 
 type JsonResponse struct {
 	Content    interface{}
-	HttpStatus int
+	httpStatus int
 }
 
 func (r *JsonResponse) Render() ([]byte, error) {
@@ -19,5 +20,14 @@ func (r *JsonResponse) ContentType() string {
 }
 
 func (r *JsonResponse) Status() int {
-	return r.HttpStatus
+	return r.httpStatus
+}
+
+func NewJsonResponse(content interface{}) *JsonResponse {
+	return &JsonResponse{Content: content, httpStatus: http.StatusOK}
+}
+
+func (r *JsonResponse) BadRequest() *JsonResponse {
+	r.httpStatus = http.StatusBadRequest
+	return r
 }

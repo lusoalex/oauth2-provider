@@ -32,7 +32,7 @@ func (*AuthorizeHandler) Handle(w http.ResponseWriter, r *http.Request) (respons
 
 	//Initialize redirect_uri
 	if redirectUri := initRedirectUri(r, authorizationRequest.ClientId.AllowedRedirectUri); redirectUri == "" {
-		return response.JsonResponse{HttpStatus: http.StatusBadRequest, Content: oauth2_errors.InvalidRedirectUri}, nil
+		return response.NewJsonResponse(oauth2_errors.InvalidRedirectUri).BadRequest(), nil
 	} else {
 		authorizationRequest.RedirectUri = redirectUri
 	}
@@ -44,8 +44,7 @@ func (*AuthorizeHandler) Handle(w http.ResponseWriter, r *http.Request) (respons
 	case models.RESPONSE_TYPE_TOKEN:
 		return handleImplicitFlowRequest(w, r, &authorizationRequest), nil
 	default:
-		return response.JsonResponse{HttpStatus: http.StatusBadRequest, Content: oauth2_errors.InvalidTypeError}, nil
-
+		return response.NewJsonResponse(oauth2_errors.InvalidTypeError).BadRequest(), nil
 	}
 
 	return nil, NotFound
@@ -59,13 +58,13 @@ func handleAuthorizationCodeFlowRequest(r *http.Request, authRequest *models.Aut
 	//Get code_challenge, and if client_id settings require use of PKCE, return an error if not respected.
 	codeChallenge := r.URL.Query().Get(constants.PARAM_CODE_CHALLENGE)
 	if codeChallenge == "" && authRequest.ClientId.ForceUseOfPKCE {
-		return response.JsonResponse{HttpStatus: http.StatusBadRequest, Content: oauth2_errors.MissingCodeChallenge}
+		return response.NewJsonResponse(oauth2_errors.MissingCodeChallenge).BadRequest()
 	}
 
 	codeChallengeMethod := models.CodeChallengeMethod(r.URL.Query().Get(constants.PARAM_CODE_CHALLENGE_METHOD))
 	//If code_challenge_method is specified, then the value must be plain or S256
 	if codeChallengeMethod != "" && codeChallengeMethod != models.CODE_CHALLENGE_METHOD_PLAIN && codeChallengeMethod != models.CODE_CHALLENGE_METHOD_S256 {
-		return response.JsonResponse{HttpStatus: http.StatusBadRequest, Content: oauth2_errors.InvalidCodeChallenge}
+		return response.NewJsonResponse(oauth2_errors.InvalidCodeChallenge).BadRequest()
 	}
 
 	//If the code_challenge_method is not specified, but there's a code_challenge informed, so we use plain as default
