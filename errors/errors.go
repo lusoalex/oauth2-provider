@@ -45,6 +45,12 @@ var InvalidCodeChallenge = &models.Error{
 	ErrorUri:         "https://tools.ietf.org/html/rfc7636#section-4.3",
 }
 
+var INVALID_CLIENT_ID = &models.Error{
+	Reason:           ERROR_INVALID_CLIENT,
+	ErrorDescription: DESC_INVALID_CLIENT,
+	ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-2.2",
+}
+
 var UnsupportedGrantType = &models.Error{
 	Reason:           ERROR_UNSUPPORTED_GRANT_TYPE,
 	ErrorDescription: DESC_UNSUPPORTED_GRANT_TYPE,
