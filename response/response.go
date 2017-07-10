@@ -2,7 +2,6 @@ package response
 
 import (
 	"net/http"
-	"log"
 )
 
 type HTTPResponse struct {
@@ -12,11 +11,11 @@ type HTTPResponse struct {
 }
 
 func NewHTTPResponse(body []byte, contentType string) *HTTPResponse {
-	return &HTTPResponse(
+	return &HTTPResponse{
 		Body: body,
 		Status: http.StatusOK,
 		ContentType: contentType,
-	)
+	}
 }
 
 type Response interface {
@@ -65,8 +64,8 @@ func BadRequest(response Response) (*HTTPResponse, error) {
 	}
 }
 
-func (r *Response) Send(w http.ResponseWriter) {
-	w.Header().Write("content-type", r.ContentType)
+func (r *HTTPResponse) Send(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", r.ContentType)
 	w.WriteHeader(r.Status)
 	w.Write(r.Body)
 }

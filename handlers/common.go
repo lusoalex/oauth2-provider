@@ -32,7 +32,7 @@ func (w *WrappedResponseWriter) WriteHeader(code int) {
 }
 
 type Handler interface {
-	Handle(w http.ResponseWriter, req *http.Request) (response.Response, error)
+	Handle(w http.ResponseWriter, req *http.Request) (*response.HTTPResponse, error)
 }
 
 type CommonHandler struct {
