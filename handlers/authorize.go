@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"net/http"
 	"oauth2-provider/client"
 	"oauth2-provider/constants"
@@ -101,7 +102,7 @@ func handleAuthorizationCodeFlowRequest(r *http.Request, authRequest *models.Aut
 	*/
 	return response.OK(response.NewJsonResponse(&struct {
 		Message string
-	} {
+	}{
 		Message: "Not implemented yet",
 	})) //.NotImplemented()
 }
@@ -117,33 +118,35 @@ func handleImplicitFlowRequest(w http.ResponseWriter, r *http.Request, authReque
 	}
 
 	//TODO display login form
+	return response.NewHTTPResponse(HandleLoginPage(), "text/html"), nil
 
 	/*
-		//TODO generate true jwt
-		accessToken := "yoloooo"
-		//build redirect uri
-		uri, _ := url.Parse(authRequest.RedirectUri)
-		query := uri.Query()
-		query.Add(constants.PARAM_ACCESS_TOKEN, accessToken)
-		query.Add(constants.PARAM_TOKEN_TYPE, string(constants.TOKEN_TYPE_BEARER))
-		//TODO add expires_in
-		//TODO add scope if different
-		if authRequest.State != "" {
-			query.Add(constants.PARAM_STATE, authRequest.State)
-		}
-		uri.RawQuery = query.Encode()
-		location := strings.Replace(uri.String(), "?", "#", 1)
+			//TODO generate true jwt
+			accessToken := "yoloooo"
+			//build redirect uri
+			uri, _ := url.Parse(authRequest.RedirectUri)
+			query := uri.Query()
+			query.Add(constants.PARAM_ACCESS_TOKEN, accessToken)
+			query.Add(constants.PARAM_TOKEN_TYPE, string(constants.TOKEN_TYPE_BEARER))
+			//TODO add expires_in
+			//TODO add scope if different
+			if authRequest.State != "" {
+				query.Add(constants.PARAM_STATE, authRequest.State)
+			}
+			uri.RawQuery = query.Encode()
+			location := strings.Replace(uri.String(), "?", "#", 1)
 
-		http.Redirect(w, r, location, http.StatusFound)
+			http.Redirect(w, r, location, http.StatusFound)
 
+
+		return response.BadRequest(
+			response.NewJsonResponse(&struct {
+				Message string
+			}{
+				Message: "Not imlemented yet",
+			}),
+		)
 	*/
-	return response.BadRequest(
-		response.NewJsonResponse(&struct {
-			Message string
-		} {
-			Message: "Not imlemented yet",
-		}),
-	)
 }
 
 /*
@@ -197,3 +200,21 @@ func storeCode(wg *sync.WaitGroup, authRequest *AuthorizationRequest) error {
 	return nil
 }
 */
+
+func HandleLoginPage() []byte {
+
+	var w bytes.Buffer
+
+	w.Write([]byte("<!DOCTYPE html>"))
+	w.Write([]byte("<html><head>"))
+	w.Write([]byte("<meta charset=\"UTF-8\">"))
+	w.Write([]byte("<title>Login Page</title>"))
+	w.Write([]byte("</head><body>"))
+	w.Write([]byte("<div><form method=\"post\" action=\"/login\">"))
+	w.Write([]byte("Login<br><input type=\"text\" name=\"login\" placeholder=\"Login\" required=\"required\"/><br><br>"))
+	w.Write([]byte("Password<br><input type=\"password\" name=\"password\" placeholder=\"Password\" required=\"required\"/><br><br>"))
+	w.Write([]byte("<button type=\"submit\">LOGIN</button>"))
+	w.Write([]byte("</form></div></body></html>"))
+
+	return w.Bytes()
+}
