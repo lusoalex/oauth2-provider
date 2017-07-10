@@ -1,11 +1,6 @@
 package constants
 
 const (
-	CONTENT_TYPE      = "Content-Type"
-	CONTENT_TYPE_JSON = "application/json"
-	CONTENT_TYPE_HTML = "text/html"
-	CONTENT_TYPE_TEXT = "text/plain"
-
 	//Request query parameters needed of oauth2 flows https://tools.ietf.org/html/rfc6749#appendix-A
 	PARAM_CLIENT_ID     = "client_id"
 	PARAM_CLIENT_SECRET = "client_secret"

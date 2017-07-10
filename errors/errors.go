@@ -67,41 +67,6 @@ func UnauthorizedClient(grantType models.GrantType) *models.Error {
 	return &models.Error{
 		Reason:           ERROR_UNAUTHORIZED_CLIENT,
 		ErrorDescription: string(grantType) + " grant not allowed for this client",
-		ErrorUri:         "https://tools.ietf.org/html/rfc7636#section-5.2",
+		ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-5.2",
 	}
 }
-
-/*func (error *Oauth2Error) handle(w http.ResponseWriter, status int) {
-	if errorMessage, err := json.Marshal(error); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	} else {
-		w.WriteHeader(status)
-		w.Write([]byte(errorMessage))
-	}
-}
-
-func (error *models.Error) Handle(w http.ResponseWriter) {
-	error.handle(w, http.Statusmodels.Error)
-}
-
-func (error *ForbiddenRequest) Handle(w http.ResponseWriter) {
-	error.handle(w, http.StatusForbidden)
-}*/
-
-/*
-func Oauth2NotFoundHandler(w http.ResponseWriter, r *http.Request) {
-	errorMessage, _ := json.Marshal(&Oauth2models.Error{
-		Reason: http.StatusText(http.StatusNotFound),
-	})
-	w.WriteHeader(http.StatusNotFound)
-	w.Write([]byte(errorMessage))
-}
-
-func Oauth2MethodNotAllowedHandler(w http.ResponseWriter, r *http.Request) {
-	errorMessage, _ := json.Marshal(&Oauth2models.Error{
-		Reason: http.StatusText(http.StatusMethodNotAllowed),
-	})
-	w.WriteHeader(http.StatusMethodNotAllowed)
-	w.Write([]byte(errorMessage))
-}
-*/

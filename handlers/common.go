@@ -4,7 +4,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"oauth2-provider/constants"
 	"oauth2-provider/response"
 	"path"
 	"strings"
