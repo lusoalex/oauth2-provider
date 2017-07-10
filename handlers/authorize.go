@@ -100,7 +100,7 @@ func handleAuthorizationCodeFlowRequest(r *http.Request, authRequest *models.Aut
 
 		return nil, errors.New("Not implemented yet")
 	*/
-	return response.JsonResponse{Content: errors.New("Not implemented yet")}
+	return response.NewJsonResponse(errors.New("Not implemented yet")).NotImplemented()
 }
 
 func handleImplicitFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *models.AuthorizationRequest) response.Response {
@@ -130,7 +130,7 @@ func handleImplicitFlowRequest(w http.ResponseWriter, r *http.Request, authReque
 		http.Redirect(w, r, location, http.StatusFound)
 
 	*/
-	return response.JsonResponse{Content: errors.New("Not implemented yet")}
+	return response.NewJsonResponse(errors.New("Not implemented yet")).NotImplemented()
 }
 
 /*

@@ -28,3 +28,8 @@ func (r *ResponseStatus) BadRequest() *Response {
 	r.httpStatus = http.StatusBadRequest
 	return r
 }
+
+func (r *ResponseStatus) NotImplemented() *Response {
+	r.httpStatus = http.StatusNotImplemented
+	return r
+}
