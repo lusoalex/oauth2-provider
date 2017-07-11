@@ -31,11 +31,11 @@ var InvalidRedirectUri = &models.Error{
 	ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-3.1.2",
 }
 
-var MissingCodeChallenge = &models.Error{
+var MissingCodeChallenge = models.BadRequest(&models.Error{
 	Reason:           ERROR_INVALID_REQUEST,
 	ErrorDescription: DESC_MISSING_CODE_CHALLENGE,
 	ErrorUri:         "https://tools.ietf.org/html/rfc7636#section-4.4.1",
-}
+})
 
 var InvalidCodeChallenge = &models.Error{
 	Reason:           ERROR_INVALID_REQUEST,

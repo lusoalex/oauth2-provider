@@ -17,13 +17,13 @@ type AuthorizeHandler struct {
 	MainHandler
 }
 
-func (*AuthorizeHandler) Handle(w http.ResponseWriter, r *http.Request) (*response.HTTPResponse, error) {
+func (*AuthorizeHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	var authorizationRequest models.AuthorizationRequest
 
 	//initialize client_id
 	if clientId, clientIdErr := client.GetClientInformations(r.URL.Query().Get(constants.PARAM_CLIENT_ID)); clientIdErr != nil {
-		return response.BadRequest(response.NewJsonResponse(client.INVALID_CLIENT_ID))
+		//TODO return response.BadRequest(response.NewJsonResponse(client.INVALID_CLIENT_ID))
 	} else {
 		authorizationRequest.ClientId = *clientId
 	}
@@ -34,43 +34,58 @@ func (*AuthorizeHandler) Handle(w http.ResponseWriter, r *http.Request) (*respon
 
 	//Initialize redirect_uri
 	if redirectUri := initRedirectUri(r, authorizationRequest.ClientId.AllowedRedirectUri); redirectUri == "" {
-		return response.BadRequest(response.NewJsonResponse(oauth2_errors.InvalidRedirectUri))
+		//TODO return response.BadRequest(response.NewJsonResponse(oauth2_errors.InvalidRedirectUri))
 	} else {
 		authorizationRequest.RedirectUri = redirectUri
 	}
 
+	var err error
 	//Handle authorization code flow request
 	switch authorizationRequest.ResponseType {
 	case models.RESPONSE_TYPE_CODE:
-		return handleAuthorizationCodeFlowRequest(r, &authorizationRequest)
+		err = handleAuthorizationCodeFlowRequest(w, r, &authorizationRequest)
 	case models.RESPONSE_TYPE_TOKEN:
-		return handleImplicitFlowRequest(w, r, &authorizationRequest)
+		err = handleImplicitFlowRequest(w, r, &authorizationRequest)
 	default:
-		return response.BadRequest(response.NewJsonResponse(oauth2_errors.InvalidTypeError))
+		//err = 500
 	}
 
-	return nil, NotFound
+	if err != nil {
+		switch err.(type) {
+		case models.BadRequest:
+			w.WriteHeader(http.StatusBadRequest)
+			//w.Write(json(err))
+		case models.ForbiddenRequest:
+			w.WriteHeader(http.StatusForbidden)
+			//w.Write(json(err))
+		default:
+			w.WriteHeader(500)
+			//w.Write(???)
+		}
+	}
+
+	return
 }
 
 /**
  * Even if PKCE (https://tools.ietf.org/html/rfc7636) is not forced, if code_challenge is informed, we will apply it.
  */
-func handleAuthorizationCodeFlowRequest(r *http.Request, authRequest *models.AuthorizationRequest) (*response.HTTPResponse, error) {
+func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *models.AuthorizationRequest) error {
 
 	if !isGrantTypeAllowed(models.GRANT_TYPE_AUTHORIZATION_CODE, authRequest.ClientId.AllowedGrantType) {
-		return response.BadRequest(response.NewJsonResponse(oauth2_errors.UnauthorizedClient(models.GRANT_TYPE_AUTHORIZATION_CODE)))
+		return models.BadRequest(oauth2_errors.UnauthorizedClient(models.GRANT_TYPE_AUTHORIZATION_CODE))
 	}
 
 	//Get code_challenge, and if client_id settings require use of PKCE, return an error if not respected.
 	codeChallenge := r.URL.Query().Get(constants.PARAM_CODE_CHALLENGE)
 	if codeChallenge == "" && authRequest.ClientId.ForceUseOfPKCE {
-		return response.BadRequest(response.NewJsonResponse(oauth2_errors.MissingCodeChallenge))
+		return oauth2_errors.MissingCodeChallenge
 	}
 
 	codeChallengeMethod := models.CodeChallengeMethod(r.URL.Query().Get(constants.PARAM_CODE_CHALLENGE_METHOD))
 	//If code_challenge_method is specified, then the value must be plain or S256
 	if codeChallengeMethod != "" && codeChallengeMethod != models.CODE_CHALLENGE_METHOD_PLAIN && codeChallengeMethod != models.CODE_CHALLENGE_METHOD_S256 {
-		return response.BadRequest(response.NewJsonResponse(oauth2_errors.InvalidCodeChallenge))
+		return oauth2_errors.InvalidCodeChallenge
 	}
 
 	//If the code_challenge_method is not specified, but there's a code_challenge informed, so we use plain as default
@@ -103,25 +118,18 @@ func handleAuthorizationCodeFlowRequest(r *http.Request, authRequest *models.Aut
 
 		return nil, errors.New("Not implemented yet")
 	*/
-	return response.NotImplemented(response.NewJsonResponse(&struct {
-		Message string
-	}{
-		Message: "Not implemented yet",
-	})) //.NotImplemented()
+	return nil
 }
 
-func handleImplicitFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *models.AuthorizationRequest) (*response.HTTPResponse, error) {
+func handleImplicitFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *models.AuthorizationRequest) error {
 
 	if !isGrantTypeAllowed(models.GRANT_TYPE_IMPLICIT, authRequest.ClientId.AllowedGrantType) {
-		return response.BadRequest(
-			response.NewJsonResponse(
-				oauth2_errors.UnauthorizedClient(models.GRANT_TYPE_IMPLICIT),
-			),
-		)
+		return models.BadRequest(oauth2_errors.UnauthorizedClient(models.GRANT_TYPE_IMPLICIT))
 	}
 
 	if form, user := HandleLoginPage(r); user == nil {
-		return response.NewHTTPResponse(form, "text/html"), nil
+		//w.XXX
+		response.NewHTTPResponse(form, "text/html")
 	} else {
 		//TODO generate true jwt
 		accessToken := "token." + user.Firstname + "." + user.Name
@@ -140,11 +148,7 @@ func handleImplicitFlowRequest(w http.ResponseWriter, r *http.Request, authReque
 
 		http.Redirect(w, r, location, http.StatusFound)
 	}
-	return response.NotImplemented(response.NewJsonResponse(&struct {
-		Message string
-	}{
-		Message: "Not implemented yet",
-	})) //.NotImplemented()
+	return nil
 }
 
 /*
