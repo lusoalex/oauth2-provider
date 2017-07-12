@@ -1,29 +1,54 @@
 package handlers
 
 import (
-	"bytes"
+	"encoding/json"
+	"log"
 	"net/http"
 	"net/url"
 	"oauth2-provider/client"
 	"oauth2-provider/constants"
 	oauth2_errors "oauth2-provider/errors"
 	"oauth2-provider/models"
-	"oauth2-provider/response"
 	"oauth2-provider/user"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
-type AuthorizeHandler struct {
-	MainHandler
+type AuthorizeHandler struct{}
+
+func (*AuthorizeHandler) ServeHttp(w http.ResponseWriter, r *http.Request) {
+
+	err := handleAuthorizationRequest(w, r)
+
+	if err != nil {
+
+		log.Printf("Oauth2Error type [%T], value[%v]\n", err, err)
+
+		if body, marshalErr := json.Marshal(err); marshalErr != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+		} else {
+			switch err.(type) {
+			case *models.BadRequest:
+				w.WriteHeader(http.StatusBadRequest)
+			case *models.ForbiddenRequest:
+				w.WriteHeader(http.StatusForbidden)
+			default:
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+			w.Header().Add("Content-type", "application/json")
+			w.Write(body)
+		}
+	}
 }
 
-func (*AuthorizeHandler) Handle(w http.ResponseWriter, r *http.Request) {
-
+func handleAuthorizationRequest(w http.ResponseWriter, r *http.Request) error {
 	var authorizationRequest models.AuthorizationRequest
 
-	//initialize client_id
+	//Initialize client_id
 	if clientId, clientIdErr := client.GetClientInformations(r.URL.Query().Get(constants.PARAM_CLIENT_ID)); clientIdErr != nil {
-		//TODO return response.BadRequest(response.NewJsonResponse(client.INVALID_CLIENT_ID))
+		return clientIdErr
 	} else {
 		authorizationRequest.ClientId = *clientId
 	}
@@ -33,38 +58,23 @@ func (*AuthorizeHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	authorizationRequest.State = r.URL.Query().Get(constants.PARAM_STATE)
 
 	//Initialize redirect_uri
-	if redirectUri := initRedirectUri(r, authorizationRequest.ClientId.AllowedRedirectUri); redirectUri == "" {
-		//TODO return response.BadRequest(response.NewJsonResponse(oauth2_errors.InvalidRedirectUri))
+	if redirectUri, err := initRedirectUri(r, authorizationRequest.ClientId.AllowedRedirectUri); err != nil {
+		return err
 	} else {
 		authorizationRequest.RedirectUri = redirectUri
 	}
 
-	var err error
 	//Handle authorization code flow request
 	switch authorizationRequest.ResponseType {
 	case models.RESPONSE_TYPE_CODE:
-		err = handleAuthorizationCodeFlowRequest(w, r, &authorizationRequest)
+		return handleAuthorizationCodeFlowRequest(w, r, &authorizationRequest)
 	case models.RESPONSE_TYPE_TOKEN:
-		err = handleImplicitFlowRequest(w, r, &authorizationRequest)
+		return handleImplicitFlowRequest(w, r, &authorizationRequest)
 	default:
 		//err = 500
 	}
 
-	if err != nil {
-		switch err.(type) {
-		case models.BadRequest:
-			w.WriteHeader(http.StatusBadRequest)
-			//w.Write(json(err))
-		case models.ForbiddenRequest:
-			w.WriteHeader(http.StatusForbidden)
-			//w.Write(json(err))
-		default:
-			w.WriteHeader(500)
-			//w.Write(???)
-		}
-	}
-
-	return
+	return nil
 }
 
 /**
@@ -73,7 +83,7 @@ func (*AuthorizeHandler) Handle(w http.ResponseWriter, r *http.Request) {
 func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *models.AuthorizationRequest) error {
 
 	if !isGrantTypeAllowed(models.GRANT_TYPE_AUTHORIZATION_CODE, authRequest.ClientId.AllowedGrantType) {
-		return models.BadRequest(oauth2_errors.UnauthorizedClient(models.GRANT_TYPE_AUTHORIZATION_CODE))
+		return oauth2_errors.UnauthorizedClient(models.GRANT_TYPE_AUTHORIZATION_CODE)
 	}
 
 	//Get code_challenge, and if client_id settings require use of PKCE, return an error if not respected.
@@ -97,14 +107,17 @@ func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, 
 	authRequest.CodeChallenge = codeChallenge
 	authRequest.CodeChallengeMethod = codeChallengeMethod
 
-	//TODO display login form
+	if user := HandleLoginPage(w, r); user != nil {
 
-	/*
 		//generate code
 		authRequest.Code = uuid.New().String()
-		wg := &sync.WaitGroup{}
-		wg.Add(1)
-		go storeCode(&wg, authRequest)
+
+		//TODO save code to kvs
+		/*
+			wg := &sync.WaitGroup{}
+			wg.Add(1)
+			go storeCode(&wg, authRequest)
+		*/
 
 		//build redirect uri
 		uri, _ := url.Parse(authRequest.RedirectUri)
@@ -114,23 +127,19 @@ func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, 
 		uri.RawQuery = query.Encode()
 		http.Redirect(w, r, uri.String(), http.StatusFound)
 
-		wg.Wait() //wait code have been stored to return the response
+		//wg.Wait() //wait code have been stored to return the response
+	}
 
-		return nil, errors.New("Not implemented yet")
-	*/
 	return nil
 }
 
 func handleImplicitFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *models.AuthorizationRequest) error {
 
 	if !isGrantTypeAllowed(models.GRANT_TYPE_IMPLICIT, authRequest.ClientId.AllowedGrantType) {
-		return models.BadRequest(oauth2_errors.UnauthorizedClient(models.GRANT_TYPE_IMPLICIT))
+		return oauth2_errors.UnauthorizedClient(models.GRANT_TYPE_IMPLICIT)
 	}
 
-	if form, user := HandleLoginPage(r); user == nil {
-		//w.XXX
-		response.NewHTTPResponse(form, "text/html")
-	} else {
+	if user := HandleLoginPage(w, r); user != nil {
 		//TODO generate true jwt
 		accessToken := "token." + user.Firstname + "." + user.Name
 		//build redirect uri
@@ -148,6 +157,7 @@ func handleImplicitFlowRequest(w http.ResponseWriter, r *http.Request, authReque
 
 		http.Redirect(w, r, location, http.StatusFound)
 	}
+
 	return nil
 }
 
@@ -157,23 +167,24 @@ func handleImplicitFlowRequest(w http.ResponseWriter, r *http.Request, authReque
  * In such case we must ensure that the request come's from an allowed client uri https://tools.ietf.org/html/rfc6749#section-3.1.2
  * The endpoint URI MUST NOT include a fragment component. TODO: add additional check in/out values
  */
-func initRedirectUri(r *http.Request, allowedRedirectUris []string) string {
+func initRedirectUri(r *http.Request, allowedRedirectUris []string) (string, error) {
 
 	//TODO : check wildcard uri (be as restrictive as possible)
-	//TODO : implement optional redirect_uri
 
 	// If redirect_uri is not informed and current request is oauth2 implicit flow, then we get it from the settings.
-	if redirectUri := r.URL.Query().Get(constants.PARAM_REDIRECT_URI); redirectUri != "" {
+	if redirectUri := r.URL.Query().Get(constants.PARAM_REDIRECT_URI); redirectUri == "" && len(allowedRedirectUris) == 1 {
+		return allowedRedirectUris[0], nil
+	} else {
 		//check that the provided redirect_uri is well informed into the client settings.
 		for _, allowedRedirectUri := range allowedRedirectUris {
 			if redirectUri == allowedRedirectUri {
-				return redirectUri
+				return redirectUri, nil
 			}
 		}
 	}
 
 	//No matching redirect_uri found, return an error.
-	return ""
+	return "", &models.BadRequest{Oauth2Error: oauth2_errors.InvalidRedirectUri}
 }
 
 func isGrantTypeAllowed(grantType models.GrantType, allowedGrantType []models.GrantType) bool {
@@ -203,16 +214,18 @@ func storeCode(wg *sync.WaitGroup, authRequest *AuthorizationRequest) error {
 }
 */
 
-func HandleLoginPage(r *http.Request) ([]byte, *user.User) {
+func HandleLoginPage(w http.ResponseWriter, r *http.Request) *user.User {
 
 	r.ParseForm()
 	if login, password := r.Form.Get("login"), r.Form.Get("password"); r.Method == "POST" && login != "" && password != "" {
 		if user, ok := user.MatchingCredentials(login, password); ok == true {
-			return nil, user
+			return user
 		}
 	}
 
-	var w bytes.Buffer
+	w.WriteHeader(http.StatusOK)
+	w.Header().Add("Content-type", "text/html")
+
 	w.Write([]byte("<!DOCTYPE html>"))
 	w.Write([]byte("<html><head>"))
 	w.Write([]byte("<meta charset=\"UTF-8\">"))
@@ -224,5 +237,5 @@ func HandleLoginPage(r *http.Request) ([]byte, *user.User) {
 	w.Write([]byte("<button type=\"submit\">LOGIN</button>"))
 	w.Write([]byte("</form></div></body></html>"))
 
-	return w.Bytes(), nil
+	return nil
 }

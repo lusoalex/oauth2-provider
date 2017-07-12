@@ -19,50 +19,50 @@ const (
 	DESC_INVALID_REDIRECT_URI      = "Missing, invalid, or mismatching redirect_uri parameter."
 )
 
-var InvalidTypeError = &models.Error{
+var InvalidTypeError = &models.Oauth2Error{
 	Reason:           ERROR_UNSUPPORTED_RESPONSE_TYPE,
 	ErrorDescription: DESC_UNSUPPORTED_RESPONSE_TYPE,
 	ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-3.1.1",
 }
 
-var InvalidRedirectUri = &models.Error{
+var InvalidRedirectUri = &models.Oauth2Error{
 	Reason:           ERROR_INVALID_REQUEST,
 	ErrorDescription: DESC_INVALID_REDIRECT_URI,
 	ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-3.1.2",
 }
 
-var MissingCodeChallenge = models.BadRequest(&models.Error{
+var MissingCodeChallenge = &models.Oauth2Error{
 	Reason:           ERROR_INVALID_REQUEST,
 	ErrorDescription: DESC_MISSING_CODE_CHALLENGE,
 	ErrorUri:         "https://tools.ietf.org/html/rfc7636#section-4.4.1",
-})
+}
 
-var InvalidCodeChallenge = &models.Error{
+var InvalidCodeChallenge = &models.Oauth2Error{
 	Reason:           ERROR_INVALID_REQUEST,
 	ErrorDescription: DESC_INVALID_CODE_CHALLENGE,
 	ErrorUri:         "https://tools.ietf.org/html/rfc7636#section-4.3",
 }
 
-var UnsupportedGrantType = &models.Error{
+var UnsupportedGrantType = &models.Oauth2Error{
 	Reason:           ERROR_UNSUPPORTED_GRANT_TYPE,
 	ErrorDescription: DESC_UNSUPPORTED_GRANT_TYPE,
 	ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-5.2",
 }
 
-var MissingOrMalformedCodeVerifierFormat = &models.Error{
+var MissingOrMalformedCodeVerifierFormat = &models.Oauth2Error{
 	Reason:           ERROR_INVALID_REQUEST,
 	ErrorDescription: "Missing or malformed code_verifier parameter",
 	ErrorUri:         "https://tools.ietf.org/html/rfc7636#section-4.1",
 }
 
-var InvalidCodeVerifier = &models.Error{
+var InvalidCodeVerifier = &models.Oauth2Error{
 	Reason:           ERROR_INVALID_GRANT,
 	ErrorDescription: "Invalid code_verifier parameter",
 	ErrorUri:         "https://tools.ietf.org/html/rfc7636#section-4.6",
 }
 
-func UnauthorizedClient(grantType models.GrantType) *models.Error {
-	return &models.Error{
+func UnauthorizedClient(grantType models.GrantType) *models.Oauth2Error {
+	return &models.Oauth2Error{
 		Reason:           ERROR_UNAUTHORIZED_CLIENT,
 		ErrorDescription: string(grantType) + " grant not allowed for this client",
 		ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-5.2",

@@ -1,6 +1,6 @@
 package models
 
-type Error struct {
+type Oauth2Error struct {
 	Reason           string `json:"error"`                       //required
 	ErrorDescription string `json:"error_description,omitempty"` //Optional
 	ErrorUri         string `json:"error_uri,omitempty"`         //Optional
@@ -8,13 +8,13 @@ type Error struct {
 }
 
 type BadRequest struct {
-	Error
+	*Oauth2Error
 }
 
 type ForbiddenRequest struct {
-	Error
+	*Oauth2Error
 }
 
-func (e *Error) Error() string {
+func (e *Oauth2Error) Error() string {
 	return e.Reason + " : " + e.ErrorDescription
 }
