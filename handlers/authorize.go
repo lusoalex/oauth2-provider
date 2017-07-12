@@ -83,7 +83,7 @@ func handleAuthorizationRequest(w http.ResponseWriter, r *http.Request) error {
 func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *models.AuthorizationRequest) error {
 
 	if !isGrantTypeAllowed(models.GRANT_TYPE_AUTHORIZATION_CODE, authRequest.ClientId.AllowedGrantType) {
-		return oauth2_errors.UnauthorizedClient(models.GRANT_TYPE_AUTHORIZATION_CODE)
+		return &models.BadRequest{oauth2_errors.UnauthorizedClient(models.GRANT_TYPE_AUTHORIZATION_CODE)}
 	}
 
 	//Get code_challenge, and if client_id settings require use of PKCE, return an error if not respected.
@@ -136,7 +136,7 @@ func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, 
 func handleImplicitFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *models.AuthorizationRequest) error {
 
 	if !isGrantTypeAllowed(models.GRANT_TYPE_IMPLICIT, authRequest.ClientId.AllowedGrantType) {
-		return oauth2_errors.UnauthorizedClient(models.GRANT_TYPE_IMPLICIT)
+		return &models.BadRequest{oauth2_errors.UnauthorizedClient(models.GRANT_TYPE_IMPLICIT)}
 	}
 
 	if user := HandleLoginPage(w, r); user != nil {
