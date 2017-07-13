@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
-	"log"
 	"net/http"
 	"net/url"
 	"oauth2-provider/client"
@@ -18,29 +16,7 @@ import (
 type AuthorizeHandler struct{}
 
 func (*AuthorizeHandler) ServeHttp(w http.ResponseWriter, r *http.Request) {
-
-	err := handleAuthorizationRequest(w, r)
-
-	if err != nil {
-
-		log.Printf("Oauth2Error type [%T], value[%v]\n", err, err)
-
-		if body, marshalErr := json.Marshal(err); marshalErr != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-		} else {
-			switch err.(type) {
-			case *models.BadRequest:
-				w.WriteHeader(http.StatusBadRequest)
-			case *models.ForbiddenRequest:
-				w.WriteHeader(http.StatusForbidden)
-			default:
-				w.WriteHeader(http.StatusInternalServerError)
-			}
-			w.Header().Add("Content-type", "application/json")
-			w.Write(body)
-		}
-	}
+	HandleOauth2Request(w, r, handleAuthorizationRequest)
 }
 
 func handleAuthorizationRequest(w http.ResponseWriter, r *http.Request) error {
@@ -83,19 +59,19 @@ func handleAuthorizationRequest(w http.ResponseWriter, r *http.Request) error {
 func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *models.AuthorizationRequest) error {
 
 	if !isGrantTypeAllowed(models.GRANT_TYPE_AUTHORIZATION_CODE, authRequest.ClientId.AllowedGrantType) {
-		return &models.BadRequest{oauth2_errors.UnauthorizedClient(models.GRANT_TYPE_AUTHORIZATION_CODE)}
+		return oauth2_errors.UnauthorizedClient(models.GRANT_TYPE_AUTHORIZATION_CODE)
 	}
 
 	//Get code_challenge, and if client_id settings require use of PKCE, return an error if not respected.
 	codeChallenge := r.URL.Query().Get(constants.PARAM_CODE_CHALLENGE)
 	if codeChallenge == "" && authRequest.ClientId.ForceUseOfPKCE {
-		return oauth2_errors.MissingCodeChallenge
+		return oauth2_errors.InvalidRequest("Missing required code_challenger parameter.", "https://tools.ietf.org/html/rfc7636#section-4.4.1")
 	}
 
 	codeChallengeMethod := models.CodeChallengeMethod(r.URL.Query().Get(constants.PARAM_CODE_CHALLENGE_METHOD))
 	//If code_challenge_method is specified, then the value must be plain or S256
 	if codeChallengeMethod != "" && codeChallengeMethod != models.CODE_CHALLENGE_METHOD_PLAIN && codeChallengeMethod != models.CODE_CHALLENGE_METHOD_S256 {
-		return oauth2_errors.InvalidCodeChallenge
+		return oauth2_errors.InvalidRequest("Invalid code_challange_method parameter", "https://tools.ietf.org/html/rfc7636#section-4.3")
 	}
 
 	//If the code_challenge_method is not specified, but there's a code_challenge informed, so we use plain as default
@@ -136,7 +112,7 @@ func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, 
 func handleImplicitFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *models.AuthorizationRequest) error {
 
 	if !isGrantTypeAllowed(models.GRANT_TYPE_IMPLICIT, authRequest.ClientId.AllowedGrantType) {
-		return &models.BadRequest{oauth2_errors.UnauthorizedClient(models.GRANT_TYPE_IMPLICIT)}
+		return oauth2_errors.UnauthorizedClient(models.GRANT_TYPE_IMPLICIT)
 	}
 
 	if user := HandleLoginPage(w, r); user != nil {
@@ -184,7 +160,10 @@ func initRedirectUri(r *http.Request, allowedRedirectUris []string) (string, err
 	}
 
 	//No matching redirect_uri found, return an error.
-	return "", &models.BadRequest{Oauth2Error: oauth2_errors.InvalidRedirectUri}
+	return "", oauth2_errors.InvalidRequest(
+		"Missing, invalid, or mismatching redirect_uri parameter.",
+		"https://tools.ietf.org/html/rfc6749#section-3.1.2",
+	)
 }
 
 func isGrantTypeAllowed(grantType models.GrantType, allowedGrantType []models.GrantType) bool {

@@ -6,11 +6,13 @@ import (
 	"net/http"
 	"regexp"
 
+	"fmt"
 	"oauth2-provider/client"
 	"oauth2-provider/constants"
 	"oauth2-provider/models"
 )
 
+type TokenHandler struct{}
 type TokenType string
 type Token struct {
 	AccessToken  *string    `json:"access_token"`
@@ -25,37 +27,39 @@ const (
 
 var validCodeVerifier = regexp.MustCompile("^[a-zA-Z0-9_-~.]{43,128}$")
 
-func TokenRequestHandler(w http.ResponseWriter, r *http.Request) {
-	/*
-		grant_type := GrantType(r.URL.Query().Get(constants.PARAM_GRANT_TYPE))
+func (*TokenHandler) ServeHttp(w http.ResponseWriter, r *http.Request) {
+	HandleOauth2Request(w, r, handleTokenRequest)
+}
 
-		var err *oauth2_errors.Oauth2Error
-		//Handle request following the grant_type
-		switch grant_type {
-		case GRANT_TYPE_AUTHORIZATION_CODE:
-			fmt.Println("TODO: token authorization code")
-			err = handleAuthorizationCodeTokenRequest(w, r)
-		case GRANT_TYPE_CLIENT_CREDENTIALS:
-			fmt.Println("TODO: token client crendentials")
-		case GRANT_TYPE_PASSWORD:
-			fmt.Println("TODO: token password")
-		case GRANT_TYPE_REFRESH_TOKEN:
-			fmt.Println("TODO: token refresh token")
-		default:
-			err = oauth2_errors.GrantTypeError
-		}
+func handleTokenRequest(w http.ResponseWriter, r *http.Request) error {
+	grant_type := models.GrantType(r.URL.Query().Get(constants.PARAM_GRANT_TYPE))
 
-		if err != nil {
-			err.Handle(w)
-			return
-		}
+	//Handle request following the grant_type
+	switch grant_type {
+	case models.GRANT_TYPE_AUTHORIZATION_CODE:
+		fmt.Println("TODO: token authorization code")
+		return handleAuthorizationCodeTokenRequest(w, r)
+	case models.GRANT_TYPE_CLIENT_CREDENTIALS:
+		fmt.Println("TODO: token client crendentials")
+	case models.GRANT_TYPE_RESSOURCE_OWNER_PASSWORD_CREDENTIALS:
+		fmt.Println("TODO: token password")
+	case models.GRANT_TYPE_REFRESH_TOKEN:
+		fmt.Println("TODO: token refresh token")
+	default:
+		return models.BadRequest{Oauth2Error: &models.Oauth2Error{
+			Reason:           "unsupported_grant_type",
+			ErrorDescription: "Missing, unsupported or malformed required grant_type parameter.",
+			ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-5.2",
+		}}
+	}
 
-		//Reply with the token
-		w.Header().Set(constants.CONTENT_TYPE, constants.CONTENT_TYPE_JSON)
-		w.WriteHeader(200)
-		at := "yoloooo"
-		rt := "god bless you"
-		json.NewEncoder(w).Encode(Token{AccessToken: &at, RefreshToken: &rt})
+	/* TODO move this...
+	//Reply with the token
+	w.Header().Set(constants.CONTENT_TYPE, constants.CONTENT_TYPE_JSON)
+	w.WriteHeader(200)
+	at := "yoloooo"
+	rt := "god bless you"
+	json.NewEncoder(w).Encode(Token{AccessToken: &at, RefreshToken: &rt})
 	*/
 }
 

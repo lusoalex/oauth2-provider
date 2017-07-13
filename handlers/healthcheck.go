@@ -6,9 +6,7 @@ import (
 	"encoding/json"
 )
 
-type HealthCheckHandler struct {
-	MainHandler
-}
+type HealthCheckHandler struct{}
 
 // TODO In the future we could report back on the status of our DB, or our cache
 // TODO (e.g. Redis) by performing a simple PING, and include them in the response.
