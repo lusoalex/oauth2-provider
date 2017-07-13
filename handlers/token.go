@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"oauth2-provider/client"
 	"oauth2-provider/constants"
+	"oauth2-provider/errors"
 	"oauth2-provider/models"
 )
 
@@ -61,6 +62,7 @@ func handleTokenRequest(w http.ResponseWriter, r *http.Request) error {
 	rt := "god bless you"
 	json.NewEncoder(w).Encode(Token{AccessToken: &at, RefreshToken: &rt})
 	*/
+	return nil
 }
 
 func handleAuthorizationCodeTokenRequest(w http.ResponseWriter, r *http.Request) error {
@@ -101,14 +103,19 @@ func handleAuthorizationCodeTokenRequest(w http.ResponseWriter, r *http.Request)
  */
 func validateCodeVerifier(codeVerifier string) error {
 
-	//if m := validCodeVerifier.FindStringSubmatch(codeVerifier); m == nil {
-	//	return oauth2_errors.InvalidCodeVerifier
-	//}
+	if m := validCodeVerifier.FindStringSubmatch(codeVerifier); m == nil {
+		return errors.InvalidRequest(
+			"Missing or malformed code_verifier parameter",
+			"https://tools.ietf.org/html/rfc7636#section-4.1",
+		)
+	}
 
 	//TODO validate code verifier corresponds to code_challenge given on the authorize request
-	/*if err := oauth2_errors.CodeVerifierError; err != nil {
-		return err
-	}*/
+	return &models.BadRequest{Oauth2Error: &models.Oauth2Error{
+		Reason:           "invalid_grant",
+		ErrorDescription: "Invalid code_verifier parameter",
+		ErrorUri:         "https://tools.ietf.org/html/rfc7636#section-4.6",
+	}}
 
 	return nil
 }

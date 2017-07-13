@@ -47,7 +47,11 @@ func handleAuthorizationRequest(w http.ResponseWriter, r *http.Request) error {
 	case models.RESPONSE_TYPE_TOKEN:
 		return handleImplicitFlowRequest(w, r, &authorizationRequest)
 	default:
-		//err = 500
+		return &models.BadRequest{Oauth2Error: &models.Oauth2Error{
+			Reason:           "unsupported_response_type",
+			ErrorDescription: "Missing, unsupported or malformed required response_type parameter.",
+			ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-3.1.1",
+		}}
 	}
 
 	return nil
