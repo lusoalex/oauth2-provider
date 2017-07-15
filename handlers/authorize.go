@@ -9,43 +9,42 @@ import (
 	"oauth2-provider/models"
 	"oauth2-provider/user"
 	"strings"
-
-	"github.com/google/uuid"
 )
 
-type AuthorizeHandler struct{}
-
-func (*AuthorizeHandler) ServeHttp(w http.ResponseWriter, r *http.Request) {
-	HandleOauth2Request(w, r, handleAuthorizationRequest)
+type AuthorizeHandler struct {
+	Oauth2Handler
 }
 
-func handleAuthorizationRequest(w http.ResponseWriter, r *http.Request) error {
+func (a *AuthorizeHandler) ServeHttp(w http.ResponseWriter, r *http.Request) {
+	a.handleOauth2Request("authorize", []string{"GET", "POST"}, w, r, a.handleAuthorizationRequest)
+}
+
+func (a *AuthorizeHandler) handleAuthorizationRequest(w http.ResponseWriter, r *http.Request) error {
 	var authorizationRequest models.AuthorizationRequest
 
 	//Initialize client_id
-	if clientId, clientIdErr := client.GetClientInformations(r.URL.Query().Get(constants.PARAM_CLIENT_ID)); clientIdErr != nil {
-		return clientIdErr
-	} else {
-		authorizationRequest.ClientId = *clientId
+	client, err := client.GetClientInformations(r.URL.Query().Get(constants.PARAM_CLIENT_ID))
+	if err != nil {
+		return err
 	}
-
-	authorizationRequest.ResponseType = models.ResponseType(r.URL.Query().Get(constants.PARAM_RESPONSE_TYPE))
-	authorizationRequest.Scope = r.URL.Query().Get(constants.PARAM_SCOPE)
-	authorizationRequest.State = r.URL.Query().Get(constants.PARAM_STATE)
+	authorizationRequest.ClientId = client.ClientId
 
 	//Initialize redirect_uri
-	if redirectUri, err := initRedirectUri(r, authorizationRequest.ClientId.AllowedRedirectUri); err != nil {
+	if authorizationRequest.RedirectUri, err = initRedirectUri(r, client.AllowedRedirectUri); err != nil {
 		return err
-	} else {
-		authorizationRequest.RedirectUri = redirectUri
 	}
 
-	//Handle authorization code flow request
+	//Initialize Score, State and ResponseType
+	authorizationRequest.Scope = r.URL.Query().Get(constants.PARAM_SCOPE)
+	authorizationRequest.State = r.URL.Query().Get(constants.PARAM_STATE)
+	authorizationRequest.ResponseType = models.ResponseType(r.URL.Query().Get(constants.PARAM_RESPONSE_TYPE))
+
+	//Handle request according to the ResponseType
 	switch authorizationRequest.ResponseType {
 	case models.RESPONSE_TYPE_CODE:
-		return handleAuthorizationCodeFlowRequest(w, r, &authorizationRequest)
+		return a.handleAuthorizationCodeFlowRequest(w, r, &authorizationRequest, client)
 	case models.RESPONSE_TYPE_TOKEN:
-		return handleImplicitFlowRequest(w, r, &authorizationRequest)
+		return a.handleImplicitFlowRequest(w, r, &authorizationRequest, client)
 	default:
 		return &models.BadRequest{Oauth2Error: &models.Oauth2Error{
 			Reason:           "unsupported_response_type",
@@ -60,15 +59,15 @@ func handleAuthorizationRequest(w http.ResponseWriter, r *http.Request) error {
 /**
  * Even if PKCE (https://tools.ietf.org/html/rfc7636) is not forced, if code_challenge is informed, we will apply it.
  */
-func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *models.AuthorizationRequest) error {
+func (a *AuthorizeHandler) handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *models.AuthorizationRequest, client *models.ClientId) error {
 
-	if !isGrantTypeAllowed(models.GRANT_TYPE_AUTHORIZATION_CODE, authRequest.ClientId.AllowedGrantType) {
+	if !isGrantTypeAllowed(models.GRANT_TYPE_AUTHORIZATION_CODE, client.AllowedGrantType) {
 		return oauth2_errors.UnauthorizedClient(models.GRANT_TYPE_AUTHORIZATION_CODE)
 	}
 
 	//Get code_challenge, and if client_id settings require use of PKCE, return an error if not respected.
 	codeChallenge := r.URL.Query().Get(constants.PARAM_CODE_CHALLENGE)
-	if codeChallenge == "" && authRequest.ClientId.ForceUseOfPKCE {
+	if codeChallenge == "" && client.ForceUseOfPKCE {
 		return oauth2_errors.InvalidRequest("Missing required code_challenger parameter.", "https://tools.ietf.org/html/rfc7636#section-4.4.1")
 	}
 
@@ -90,32 +89,23 @@ func handleAuthorizationCodeFlowRequest(w http.ResponseWriter, r *http.Request, 
 	if user := HandleLoginPage(w, r); user != nil {
 
 		//generate code
-		authRequest.Code = uuid.New().String()
-
-		//TODO save code to kvs
-		/*
-			wg := &sync.WaitGroup{}
-			wg.Add(1)
-			go storeCode(&wg, authRequest)
-		*/
+		code := a.Code(authRequest)
 
 		//build redirect uri
 		uri, _ := url.Parse(authRequest.RedirectUri)
 		query := uri.Query()
-		query.Add(constants.PARAM_CODE, authRequest.Code)
+		query.Add(constants.PARAM_CODE, code)
 
 		uri.RawQuery = query.Encode()
 		http.Redirect(w, r, uri.String(), http.StatusFound)
-
-		//wg.Wait() //wait code have been stored to return the response
 	}
 
 	return nil
 }
 
-func handleImplicitFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *models.AuthorizationRequest) error {
+func (a *AuthorizeHandler) handleImplicitFlowRequest(w http.ResponseWriter, r *http.Request, authRequest *models.AuthorizationRequest, client *models.ClientId) error {
 
-	if !isGrantTypeAllowed(models.GRANT_TYPE_IMPLICIT, authRequest.ClientId.AllowedGrantType) {
+	if !isGrantTypeAllowed(models.GRANT_TYPE_IMPLICIT, client.AllowedGrantType) {
 		return oauth2_errors.UnauthorizedClient(models.GRANT_TYPE_IMPLICIT)
 	}
 
@@ -178,24 +168,6 @@ func isGrantTypeAllowed(grantType models.GrantType, allowedGrantType []models.Gr
 	}
 	return false
 }
-
-/*
-func storeCode(wg *sync.WaitGroup, authRequest *AuthorizationRequest) error {
-
-	defer wg.Done()
-
-	var value bytes.Buffer
-	enc := gob.NewEncoder(&value)
-	if err := enc.Encode(authRequest); err != nil {
-		//TODO how to manage erors in goroutine??
-		return err
-	}
-
-	getKeyValueStore().Set(authRequest.Code, value, 20*time.Second)
-
-	return nil
-}
-*/
 
 func HandleLoginPage(w http.ResponseWriter, r *http.Request) *user.User {
 

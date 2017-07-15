@@ -12,12 +12,11 @@ const (
 )
 
 type AuthorizationRequest struct {
-	ClientId            ClientId
+	ClientId            string
 	ResponseType        ResponseType
 	RedirectUri         string
 	Scope               string
 	State               string
 	CodeChallenge       string
 	CodeChallengeMethod CodeChallengeMethod
-	Code                string
 }

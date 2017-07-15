@@ -1,24 +1,19 @@
 package utils
 
 import (
-	"time"
-	"sync"
-	"github.com/google/uuid"
 	"oauth2-provider/models"
+	"sync"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 type KeyValueStore interface {
-/*	Set(key string, value string, d time.Duration) error
-	Get(key string) (string, error)
-	Del(key string) (string, error)
-	Len() int
-	String() string
-	Lock()
-	Unlock()*/
+	Code(ar *models.AuthorizationRequest) string
+	Revoke(code string) (*models.AuthorizationRequest, bool)
 }
 
-
-var KVS *DefaultKeyValueStore
+//var KVS *DefaultKeyValueStore
 
 /*var (
 	kvsSetOnce sync.Once
@@ -49,81 +44,42 @@ type AuthorizationRequestWithTimer struct {
 }
 
 type DefaultKeyValueStore struct {
-	tokens map[string]*AuthorizationRequestWithTimer
+	codes map[string]*AuthorizationRequestWithTimer
 	sync.Mutex
 }
 
-func (kvs *DefaultKeyValueStore) Get(ar *models.AuthorizationRequest) string {
-	token := uuid.New().String()
+func (kvs *DefaultKeyValueStore) Code(ar *models.AuthorizationRequest) string {
+	code := uuid.New().String()
 	tokenTimer := time.AfterFunc(1*time.Minute, func() {
 		kvs.Lock()
 		defer kvs.Unlock()
-		delete(kvs.tokens, token)
+		delete(kvs.codes, code)
 	})
 
 	kvs.Lock()
 	defer kvs.Unlock()
-	kvs.tokens[token] = &AuthorizationRequestWithTimer{
+	kvs.codes[code] = &AuthorizationRequestWithTimer{
 		AuthorizationRequest: *ar,
-		timer: tokenTimer,
+		timer:                tokenTimer,
 	}
 
-	return token
+	return code
 }
 
-func (kvs *DefaultKeyValueStore) Revoke(token string) (*models.AuthorizationRequest, bool) {
+func (kvs *DefaultKeyValueStore) Revoke(code string) (*models.AuthorizationRequest, bool) {
 	kvs.Lock()
 	defer kvs.Unlock()
-	arwt, ok := kvs.tokens[token]
+	arwt, ok := kvs.codes[code]
 	if ok {
 		arwt.timer.Stop()
-		delete(kvs.tokens, token)
+		delete(kvs.codes, code)
 		return &arwt.AuthorizationRequest, ok
 	}
 	return nil, false
 }
 
-
-/*
-func (t *DefaultKeyValueStore) Set(key string, value string, d time.Duration) error {
-	expiration := time.Now().Add(d)
-	t.code[key] = value
-	t.codeExpiration[key] = expiration
-	return nil
-}
-
-func (t *DefaultKeyValueStore) Get(key string) (string, error) {
-	expired := t.codeExpiration[key]
-
-	if time.Now().Before(expired) {
-		return t.code[key], nil
-	}
-
-	return nil, nil
-}
-
-func (t *DefaultKeyValueStore) Del(key string) (string, error) {
-	res := t.code[key]
-	delete(t.code, key)
-	return res, nil
-}
-
-func (t *DefaultKeyValueStore) Len() int {
-	return len(t.code)
-}
-
-func (t *DefaultKeyValueStore) String() string {
-	var buffer bytes.Buffer
-	for k, v := range t.code {
-		buffer.WriteString(fmt.Sprintf("%v --> %v\n", k, v))
-	}
-	return buffer.String()
-}
-
 func NewDefaultKeyValueStore() *DefaultKeyValueStore {
 	return &DefaultKeyValueStore{
-		code:           make(map[string][]byte),
-		codeExpiration: make(map[string]time.Time),
+		codes: make(map[string]*AuthorizationRequestWithTimer),
 	}
 }
-*/

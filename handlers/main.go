@@ -3,6 +3,7 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"oauth2-provider/utils"
 	"time"
 )
 
@@ -18,6 +19,9 @@ func (h *MainHandler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
 		log.Printf("%s %s %d %s", req.Method, path, w.StatusCode, time.Since(start))
 	}(req.URL.String(), time.Now())
 
+	//Used to store code, etc...
+	kvs := utils.NewDefaultKeyValueStore()
+
 	var head string
 	head, req.URL.Path = ShiftPath(req.URL.Path)
 
@@ -25,8 +29,9 @@ func (h *MainHandler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
 	case "health_check":
 		(&HealthCheckHandler{}).ServeHTTP(w, req)
 	case "authorize":
-		(&AuthorizeHandler{}).ServeHttp(w, req)
-
+		(&AuthorizeHandler{Oauth2Handler{kvs}}).ServeHttp(w, req)
+	case "token":
+		(&TokenHandler{Oauth2Handler{kvs}}).ServeHttp(w, req)
 	default:
 		http.Error(w, "Not found", http.StatusNotFound)
 		return
