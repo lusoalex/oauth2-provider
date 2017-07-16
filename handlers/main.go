@@ -3,13 +3,15 @@ package handlers
 import (
 	"log"
 	"net/http"
-	"oauth2-provider/utils"
+	"oauth2-provider/settings"
 	"time"
 )
 
-type MainHandler struct{}
+type MainHandler struct {
+	Opts *settings.Oauth2ProviderSettings
+}
 
-func (h *MainHandler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
+func (main *MainHandler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
 
 	w := &WrappedResponseWriter{
 		ResponseWriter: _w,
@@ -19,19 +21,16 @@ func (h *MainHandler) ServeHTTP(_w http.ResponseWriter, req *http.Request) {
 		log.Printf("%s %s %d %s", req.Method, path, w.StatusCode, time.Since(start))
 	}(req.URL.String(), time.Now())
 
-	//Used to store code, etc...
-	kvs := utils.NewDefaultKeyValueStore()
-
 	var head string
 	head, req.URL.Path = ShiftPath(req.URL.Path)
 
 	switch head {
 	case "health_check":
-		(&HealthCheckHandler{}).ServeHTTP(w, req)
+		(&HealthCheckHandler{main.Opts}).ServeHTTP(w, req)
 	case "authorize":
-		(&AuthorizeHandler{Oauth2Handler{kvs}}).ServeHttp(w, req)
+		(&AuthorizeHandler{main.Opts}).ServeHTTP(w, req)
 	case "token":
-		(&TokenHandler{Oauth2Handler{kvs}}).ServeHttp(w, req)
+		(&TokenHandler{main.Opts}).ServeHTTP(w, req)
 	default:
 		http.Error(w, "Not found", http.StatusNotFound)
 		return

@@ -3,27 +3,40 @@ package handlers
 import (
 	"net/http"
 	"net/url"
-	"oauth2-provider/client"
+	"oauth2-provider/settings"
 	"oauth2-provider/constants"
 	oauth2_errors "oauth2-provider/errors"
 	"oauth2-provider/models"
-	"oauth2-provider/user"
 	"strings"
 )
 
 type AuthorizeHandler struct {
-	Oauth2Handler
+	*settings.Oauth2ProviderSettings
 }
 
-func (a *AuthorizeHandler) ServeHttp(w http.ResponseWriter, r *http.Request) {
-	a.handleOauth2Request("authorize", []string{"GET", "POST"}, w, r, a.handleAuthorizationRequest)
+func (a *AuthorizeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+	var head string
+	head, r.URL.Path = ShiftPath(r.URL.Path)
+
+	switch head {
+	case "":
+		switch r.Method {
+		case "GET", "POST":
+			serveOauth2Request(w, r, a.handleAuthorizationRequest)
+		default:
+			http.Error(w, "Not found", http.StatusNotFound)
+		}
+	default:
+		http.Error(w, "Not found", http.StatusNotFound)
+	}
 }
 
 func (a *AuthorizeHandler) handleAuthorizationRequest(w http.ResponseWriter, r *http.Request) error {
 	var authorizationRequest models.AuthorizationRequest
 
 	//Initialize client_id
-	client, err := client.GetClientInformations(r.URL.Query().Get(constants.PARAM_CLIENT_ID))
+	client, err := a.GetClientInformation(r.URL.Query().Get(constants.PARAM_CLIENT_ID))
 	if err != nil {
 		return err
 	}
@@ -86,7 +99,7 @@ func (a *AuthorizeHandler) handleAuthorizationCodeFlowRequest(w http.ResponseWri
 	authRequest.CodeChallenge = codeChallenge
 	authRequest.CodeChallengeMethod = codeChallengeMethod
 
-	if user := HandleLoginPage(w, r); user != nil {
+	if user := a.HandleLoginPage(w, r); user != nil {
 
 		//generate code
 		code := a.Code(authRequest)
@@ -109,7 +122,7 @@ func (a *AuthorizeHandler) handleImplicitFlowRequest(w http.ResponseWriter, r *h
 		return oauth2_errors.UnauthorizedClient(models.GRANT_TYPE_IMPLICIT)
 	}
 
-	if user := HandleLoginPage(w, r); user != nil {
+	if user := a.HandleLoginPage(w, r); user != nil {
 		//TODO generate true jwt
 		accessToken := "token." + user.Firstname + "." + user.Name
 		//build redirect uri
@@ -169,11 +182,11 @@ func isGrantTypeAllowed(grantType models.GrantType, allowedGrantType []models.Gr
 	return false
 }
 
-func HandleLoginPage(w http.ResponseWriter, r *http.Request) *user.User {
+func (a *AuthorizeHandler) HandleLoginPage(w http.ResponseWriter, r *http.Request) *models.User {
 
 	r.ParseForm()
 	if login, password := r.Form.Get("login"), r.Form.Get("password"); r.Method == "POST" && login != "" && password != "" {
-		if user, ok := user.MatchingCredentials(login, password); ok == true {
+		if user, ok := a.MatchingCredentials(login, password); ok == true {
 			return user
 		}
 	}

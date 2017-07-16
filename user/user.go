@@ -1,25 +1,33 @@
 package user
 
-type User struct {
-	login     string
-	password  string
-	Name      string
-	Firstname string
+import "oauth2-provider/models"
+
+type UserManager interface {
+	MatchingCredentials(login, password string) (*models.User, bool)
 }
 
-func MatchingCredentials(login, password string) (*User, bool) {
+type DefaultUserManager struct{}
+
+func (*DefaultUserManager) MatchingCredentials(login, password string) (*models.User, bool) {
 	switch login {
 	case "alexandre":
 		switch password {
 		case "padawan":
-			return &User{Name: "Jedi", Firstname: "Alexandre"}, true
+			return &models.User{Name: "Jedi", Firstname: "Alexandre"}, true
 		default:
 			return nil, false
 		}
 	case "damien":
 		switch password {
 		case "master":
-			return &User{Name: "Sith", Firstname: "Damien"}, true
+			return &models.User{Name: "Sith", Firstname: "Damien"}, true
+		default:
+			return nil, false
+		}
+	case "health_check":
+		switch password {
+		case "check_health":
+			return &models.User{Name: "Check", Firstname: "Health"}, true
 		default:
 			return nil, false
 		}

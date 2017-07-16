@@ -1,4 +1,4 @@
-package handlers
+package oauth2Provider
 
 import (
 	"net/http"
@@ -25,7 +25,7 @@ func TestOauth2Handler(t *testing.T) {
 		{name: "Method Not Allowed test", method: "GET", url: "/token", status: http.StatusMethodNotAllowed},
 	}
 
-	server := httptest.NewServer(MainHandler())
+	server := httptest.NewServer(&MainHandler{})
 	defer server.Close() //close when test is ended...
 
 	for _, test := range testCases {

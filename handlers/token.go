@@ -7,14 +7,14 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
-	"oauth2-provider/client"
+	"oauth2-provider/settings"
 	"oauth2-provider/constants"
 	"oauth2-provider/errors"
 	"oauth2-provider/models"
 )
 
 type TokenHandler struct {
-	Oauth2Handler
+	*settings.Oauth2ProviderSettings
 }
 
 type TokenType string
@@ -25,14 +25,23 @@ type Token struct {
 	RefreshToken *string    `json:"refresh_token,omitempty"`
 }
 
-const (
-	TOKEN_TYPE_BEARER TokenType = "Bearer"
-)
-
 var validCodeVerifier = regexp.MustCompile("^[a-zA-Z0-9_-~.]{43,128}$")
 
-func (t *TokenHandler) ServeHttp(w http.ResponseWriter, r *http.Request) {
-	t.handleOauth2Request("token", []string("POST"), w, r, t.handleTokenRequest)
+func (t *TokenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var head string
+	head, r.URL.Path = ShiftPath(r.URL.Path)
+
+	switch head {
+	case "":
+		switch r.Method {
+		case "POST":
+			serveOauth2Request(w, r, t.handleTokenRequest)
+		default:
+			http.Error(w, "Not found", http.StatusNotFound)
+		}
+	default:
+		http.Error(w, "Not found", http.StatusNotFound)
+	}
 }
 
 func (t *TokenHandler) handleTokenRequest(w http.ResponseWriter, r *http.Request) error {
@@ -74,7 +83,7 @@ func (t *TokenHandler) handleTokenRequest(w http.ResponseWriter, r *http.Request
 func (t *TokenHandler) handleAuthorizationCodeTokenRequest(w http.ResponseWriter, r *http.Request) (*Token, error) {
 
 	//initialize client_id
-	clientId, err := client.GetClientInformations(r.URL.Query().Get(constants.PARAM_CLIENT_ID))
+	clientId, err := t.GetClientInformation(r.URL.Query().Get(constants.PARAM_CLIENT_ID))
 	if err != nil {
 		return nil, err
 	}
@@ -98,6 +107,7 @@ func (t *TokenHandler) handleAuthorizationCodeTokenRequest(w http.ResponseWriter
 		}
 	}
 
+	//TODO put in palce a token generator (and also a mapping per client to customize the token payload)
 	at := "yoloooo"
 	rt := "god bless you"
 
@@ -123,13 +133,17 @@ func (t *TokenHandler) extractAuthorizationRequestFromCode(r *http.Request) (*mo
 }
 
 /*
- * As specified in specs https://tools.ietf.org/html/rfc7636#section-4.1
- * code_verifier = high-entropy cryptographic random STRING using the
- * unreserved characters [A-Z] / [a-z] / [0-9] / "-" / "." / "_" / "~"
- * length must be between 43 to 128 characters
+ * Validate code verifier
+ * Return an invalid request error if code verifier is missing or malformed.
+ * Return an invalid grant error if code verifier does not correspond to the expected value.
  */
 func validateCodeVerifier(codeVerifier string, authRequest *models.AuthorizationRequest) error {
 
+	/*
+	 * As specified in specs https://tools.ietf.org/html/rfc7636#section-4.1
+	 * code_verifier length must be between 43 to 128 characters using the
+	 * unreserved characters [A-Z] / [a-z] / [0-9] / "-" / "." / "_" / "~"
+	 */
 	if m := validCodeVerifier.FindStringSubmatch(codeVerifier); m == nil {
 		return errors.InvalidRequest(
 			"Missing or malformed code_verifier parameter",
@@ -137,14 +151,19 @@ func validateCodeVerifier(codeVerifier string, authRequest *models.Authorization
 		)
 	}
 
-	//Validate the code_verifier according to code challenge method provided in the authorize request.
+	/*
+	 * Validate the code_verifier according to code challenge method provided in the authorize request.
+	 * See : https://tools.ietf.org/html/rfc7636#section-4.6
+	 */
 	var matchingCodeVerifier bool
 	switch authRequest.CodeChallengeMethod {
 	case models.CODE_CHALLENGE_METHOD_PLAIN:
+		//code_verifier == code_challenge
 		matchingCodeVerifier = authRequest.CodeChallenge == codeVerifier
 	case models.CODE_CHALLENGE_METHOD_S256:
 		//BASE64URL-ENCODE(SHA256(ASCII(code_verifier))) == code_challenge
-		matchingCodeVerifier = authRequest.CodeChallenge == base64.RawURLEncoding.EncodeToString(sha256.Sum256([]byte(codeVerifier))[:])
+		shaCodeVerifier := sha256.Sum256([]byte(codeVerifier))
+		matchingCodeVerifier = authRequest.CodeChallenge == base64.RawURLEncoding.EncodeToString(shaCodeVerifier[:])
 	}
 
 	//Return error if code verifier is not valid

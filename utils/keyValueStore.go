@@ -78,7 +78,7 @@ func (kvs *DefaultKeyValueStore) Revoke(code string) (*models.AuthorizationReque
 	return nil, false
 }
 
-func NewDefaultKeyValueStore() *DefaultKeyValueStore {
+func NewDefaultKeyValueStore() KeyValueStore {
 	return &DefaultKeyValueStore{
 		codes: make(map[string]*AuthorizationRequestWithTimer),
 	}
