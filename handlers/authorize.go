@@ -3,10 +3,10 @@ package handlers
 import (
 	"net/http"
 	"net/url"
-	"oauth2-provider/settings"
 	"oauth2-provider/constants"
 	oauth2_errors "oauth2-provider/errors"
 	"oauth2-provider/models"
+	"oauth2-provider/settings"
 	"strings"
 )
 
@@ -25,9 +25,11 @@ func (a *AuthorizeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case "GET", "POST":
 			serveOauth2Request(w, r, a.handleAuthorizationRequest)
 		default:
+			//log.Printf("AuthorizeHandler unexpected http method call %v\n", r.Method)
 			http.Error(w, "Not found", http.StatusNotFound)
 		}
 	default:
+		//log.Printf("AuthorizeHandler unexpected request head path %v\n", head)
 		http.Error(w, "Not found", http.StatusNotFound)
 	}
 }

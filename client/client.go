@@ -8,12 +8,6 @@ type ClientManager interface {
 	GetClientInformation(clientId string) (*models.ClientId, error)
 }
 
-const (
-	INVALID_CLIENT_ERROR = "invalid_client"
-	INVALID_CLIENT_DESC  = "Missing or Unknown required client_id parameter."
-	INVALID_CLIENT_URI   = "https://tools.ietf.org/html/rfc6749#section-2.2"
-)
-
 type DefaultClientManager struct{}
 
 //TODO Should be implemented later...
@@ -31,9 +25,9 @@ func (*DefaultClientManager) GetClientInformation(clientId string) (*models.Clie
 	default:
 		return nil, &models.BadRequest{
 			Oauth2Error: &models.Oauth2Error{
-				Reason:           INVALID_CLIENT_ERROR,
-				ErrorDescription: INVALID_CLIENT_DESC,
-				ErrorUri:         INVALID_CLIENT_URI,
+				Reason:           "invalid_client",
+				ErrorDescription: "Missing or Unknown required client_id parameter.",
+				ErrorUri:         "https://tools.ietf.org/html/rfc6749#section-2.2",
 			}}
 	}
 }
